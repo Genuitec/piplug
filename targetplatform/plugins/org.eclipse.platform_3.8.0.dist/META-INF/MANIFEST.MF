@@ -1,0 +1,18 @@
+Manifest-Version: 1.0
+Export-Package: org.eclipse.platform.internal;x-internal:=true
+Require-Bundle: org.eclipse.ui.intro;bundle-version="[3.2.0,4.0.0)",or
+ g.eclipse.ui.cheatsheets;bundle-version="[3.2.0,4.0.0)";resolution:=o
+ ptional,org.eclipse.ui.forms;bundle-version="[3.2.0,4.0.0)";resolutio
+ n:=optional,org.eclipse.ui;bundle-version="[3.2.0,4.0.0)";resolution:
+ =optional,org.eclipse.core.runtime;bundle-version="[3.2.0,4.0.0)"
+Bundle-Vendor: %providerName
+Bundle-ClassPath: platform.jar
+Bundle-Version: 3.8.0.dist
+Bundle-Localization: plugin
+Bundle-Name: %pluginName
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.eclipse.platform; singleton:=true
+Bundle-RequiredExecutionEnvironment: J2SE-1.4,CDC-1.0/Foundation-1.0,J
+ 2SE-1.3
+
+
