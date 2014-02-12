@@ -1,9 +1,9 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: POC for PiPlugin Frontend
-Bundle-SymbolicName: com.genuitec.piplug.poc
+Bundle-SymbolicName: com.genuitec.piplug.poc;singleton:=true
 Bundle-Version: 1.0.0.qualifier
-Bundle-Activator: com.genuitec.piplug.poc.Activator
+Bundle-Activator: com.genuitec.piplug.poc.PiPlugPOCActivator
 Bundle-Vendor: Genuitec, LLC
 Require-Bundle: org.eclipse.core.runtime,
  org.eclipse.swt;bundle-version="3.8.0",

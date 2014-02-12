@@ -3,7 +3,7 @@ package com.genuitec.piplug.poc;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 
-public class Activator implements BundleActivator {
+public class PiPlugPOCActivator implements BundleActivator {
 
 	private static BundleContext context;
 
@@ -16,7 +16,7 @@ public class Activator implements BundleActivator {
 	 * @see org.osgi.framework.BundleActivator#start(org.osgi.framework.BundleContext)
 	 */
 	public void start(BundleContext bundleContext) throws Exception {
-		Activator.context = bundleContext;
+		PiPlugPOCActivator.context = bundleContext;
 	}
 
 	/*
@@ -24,7 +24,7 @@ public class Activator implements BundleActivator {
 	 * @see org.osgi.framework.BundleActivator#stop(org.osgi.framework.BundleContext)
 	 */
 	public void stop(BundleContext bundleContext) throws Exception {
-		Activator.context = null;
+		PiPlugPOCActivator.context = null;
 	}
 
 }

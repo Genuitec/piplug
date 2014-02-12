@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension
+         id="application"
+         point="org.eclipse.core.runtime.applications">
+      <application
+            cardinality="singleton-global"
+            thread="main"
+            visible="true">
+         <run
+               class="com.genuitec.piplug.poc.PiPlugPOCApplication">
+         </run>
+      </application>
+   </extension> 
+   <extension
+         id="product"
+         point="org.eclipse.core.runtime.products">
+      <product
+            application="com.genuitec.piplug.poc.application"
+            name="PiPlug Product">
+         <property
+               name="appName"
+               value="PiPlug Product">
+         </property>
+      </product>
+   </extension>
+</plugin>
