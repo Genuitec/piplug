@@ -2,27 +2,29 @@
 <?eclipse version="3.4"?>
 <plugin>
    <extension
-         id="application"
+         id="app"
+         name="PiPlug Application"
          point="org.eclipse.core.runtime.applications">
       <application
             cardinality="singleton-global"
             thread="main"
             visible="true">
          <run
-               class="com.genuitec.piplug.poc.PiPlugPOCApplication">
+               class="com.genuitec.piplug.ui.PiPlugApplication">
          </run>
       </application>
-   </extension> 
+   </extension>
    <extension
          id="product"
          point="org.eclipse.core.runtime.products">
       <product
-            application="com.genuitec.piplug.poc.application"
-            name="PiPlug Product">
+            application="com.genuitec.piplug.ui.app"
+            name="PiPlug Front-end">
          <property
                name="appName"
-               value="PiPlug Product">
+               value="PiPlug Front-end">
          </property>
       </product>
    </extension>
+
 </plugin>

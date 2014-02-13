@@ -1,0 +1,13 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: PiPlug UI
+Bundle-SymbolicName: com.genuitec.piplug.ui;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-Activator: com.genuitec.piplug.ui.PiPlugUIActivator
+Bundle-Vendor: Genuitec, LLC
+Require-Bundle: org.eclipse.core.runtime,
+ org.eclipse.swt,
+ org.eclipse.jface,
+ com.genuitec.piplug.api
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Bundle-ActivationPolicy: lazy

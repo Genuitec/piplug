@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?pde version="3.5"?>
 
-<product name="PiPlug Product" uid="piplug-poc" id="com.genuitec.piplug.poc.product" application="com.genuitec.piplug.poc.application" version="1.0.0.qualifier" useFeatures="false" includeLaunchers="true">
-
+<product name="PiPlug Front-end" uid="piplug" id="com.genuitec.piplug.ui.product" application="com.genuitec.piplug.ui.app" version="1.0.0.qualifier" useFeatures="false" includeLaunchers="true">
 
    <configIni use="default">
    </configIni>
@@ -19,21 +18,19 @@ plugins/org.eclipse.equinox.launcher.gtk.linux.arm_1.1.200.dist</programArgsLin>
 
    <windowImages/>
 
-
-   <launcher name="piplug-poc">
+   <launcher name="piplug">
       <solaris/>
       <win useIco="false">
          <bmp/>
       </win>
    </launcher>
 
-
    <vm>
    </vm>
 
-
    <plugins>
-      <plugin id="com.genuitec.piplug.poc"/>
+      <plugin id="com.genuitec.piplug.api"/>
+      <plugin id="com.genuitec.piplug.ui"/>
       <plugin id="org.eclipse.core.commands"/>
       <plugin id="org.eclipse.core.contenttype"/>
       <plugin id="org.eclipse.core.jobs"/>
