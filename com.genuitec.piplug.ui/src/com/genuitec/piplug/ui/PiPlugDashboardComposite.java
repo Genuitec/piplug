@@ -25,7 +25,7 @@ public class PiPlugDashboardComposite extends Composite {
     public PiPlugDashboardComposite(Composite parent, IPiPlugUITheme theme) {
 	super(parent, SWT.NONE);
 	GridLayout layout = new GridLayout(1, false);
-	layout.marginWidth = 30;
+	layout.marginWidth = 32;
 	layout.marginHeight = 26;
 	setLayout(layout);
 	setBackground(theme.getBackgroundColor());
