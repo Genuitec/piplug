@@ -19,7 +19,7 @@ public class PiPlugPOCApplication implements IApplication {
 	public Object start(IApplicationContext context) throws Exception {
 		Display display = new Display();
 		Rectangle bounds = display.getBounds();
-		final Shell shell = new Shell(display, SWT.CLOSE);
+		final Shell shell = new Shell(display, SWT.NO_TRIM);
 		shell.setBounds(0, 0, bounds.width, bounds.height);
 		shell.setLayout(new GridLayout(1, false));
 		final Label label = new Label(shell, SWT.NONE);
@@ -49,8 +49,8 @@ public class PiPlugPOCApplication implements IApplication {
 		shell.open();
 		
 		// run the display loop
-		while (display.sleep() && !shell.isDisposed()) {
-			while (display.readAndDispatch() && !shell.isDisposed());
+		while (!shell.isDisposed() && display.sleep()) {
+			while (!shell.isDisposed() && 	display.readAndDispatch());
 		}
 		return new Integer(0);
 	}
