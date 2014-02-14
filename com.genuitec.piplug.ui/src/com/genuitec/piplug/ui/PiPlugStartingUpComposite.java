@@ -15,7 +15,9 @@ public class PiPlugStartingUpComposite extends Composite {
 
     public PiPlugStartingUpComposite(Composite parent, IPiPlugUITheme theme) {
 	super(parent, SWT.NONE);
-	setLayout(new GridLayout(1, false));
+	GridLayout layout = new GridLayout(1, false);
+	layout.verticalSpacing = 20;
+	setLayout(layout);
 	setBackground(theme.getBackgroundColor());
 	Label label = new Label(this, SWT.CENTER);
 	label.setImage(PiPlugUIActivator.loadImage(LOGO));

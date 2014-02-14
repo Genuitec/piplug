@@ -48,8 +48,8 @@ public class ClockComposite extends Composite {
 		logo.setBackground(theme.getBackgroundColor());
 
 		label = new Label(this, SWT.CENTER);
-		label.setFont(new Font(getDisplay(), "Courier", 90, SWT.BOLD));
-		label.setForeground(new Color(getDisplay(), 128, 128, 190));
+		label.setFont(new Font(getDisplay(), "Courier", 120, SWT.BOLD));
+		label.setForeground(new Color(getDisplay(), 128, 128, 255));
 		label.setBackground(getBackground());
 		label.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, true, true));
 		format = new SimpleDateFormat("H:mm:ss");

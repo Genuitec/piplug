@@ -40,8 +40,12 @@ public class PiPlugApplication implements IApplication {
 
 	// run the display loop
 	while (!shell.isDisposed() && display.sleep()) {
-	    while (!shell.isDisposed() && display.readAndDispatch()) {
-		// process events
+	    try {
+		while (!shell.isDisposed() && display.readAndDispatch()) {
+		    // process events
+		}
+	    } catch (Exception e) {
+		e.printStackTrace();
 	    }
 	}
 	return new Integer(0);

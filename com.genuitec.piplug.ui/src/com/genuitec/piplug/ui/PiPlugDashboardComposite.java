@@ -98,6 +98,7 @@ public class PiPlugDashboardComposite extends Composite {
 	    label = new Label(this, SWT.CENTER);
 	    label.setText(app.getBranding().getName());
 	    label.setFont(theme.getSubtitleFont());
+	    label.setForeground(theme.getSubtitleColor());
 	    label.setLayoutData(new GridData(SWT.FILL, SWT.BOTTOM, true, false));
 	    label.addMouseListener(this);
 	    label.setBackground(theme.getBackgroundColor());

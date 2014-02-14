@@ -490,4 +490,8 @@ public class ZScreen extends Canvas implements KeyListener, PaintListener {
 	e.gc.drawImage(backing_image, e.x, e.y, e.width, e.height, e.x, e.y,
 		e.width, e.height);
     }
+
+    public boolean isPainted() {
+	return fixedmetrics != null && lines > 0 && inputcursor != null;
+    }
 }

@@ -4,6 +4,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Label;
@@ -19,7 +23,12 @@ import com.genuitec.piplug.api.IPiPlugServices;
 
 public class InfocomEngine {
 
-    private final class RunEmulation implements Runnable {
+    private final class RunEmulation extends Job implements Runnable {
+
+	public RunEmulation() {
+	    super("invoke-emulator");
+	}
+
 	public void run() {
 	    screen.zm = zm;
 	    screen.setFocus();
@@ -27,6 +36,17 @@ public class InfocomEngine {
 	    screen.clear();
 	    status_line.clear();
 	    services.switchToHome();
+	}
+
+	@Override
+	protected IStatus run(IProgressMonitor monitor) {
+	    while (!screen.isPainted()) {
+		schedule(50);
+		return Status.OK_STATUS;
+	    }
+
+	    composite.getDisplay().asyncExec(this);
+	    return Status.OK_STATUS;
 	}
     }
 
@@ -49,7 +69,7 @@ public class InfocomEngine {
 	    zm = null;
 	}
 	startzm(zcodefile);
-	composite.getDisplay().asyncExec(new RunEmulation());
+	new RunEmulation().schedule();
     }
 
     public void stop() {
