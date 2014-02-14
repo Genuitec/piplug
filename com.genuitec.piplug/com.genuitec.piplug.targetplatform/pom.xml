@@ -1,0 +1,69 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>com.genuitec.piplug</groupId>
+		<artifactId>com.genuitec.piplug</artifactId>
+		<version>1.0.0.qualifier</version>
+	</parent>
+	<groupId>com.genuitec.piplug.targetplatform</groupId>
+	<artifactId>com.genuitec.piplug.targetplatform</artifactId>
+	<packaging>pom</packaging>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.eclipse.tycho.extras</groupId>
+				<artifactId>tycho-p2-extras-plugin</artifactId>
+				<version>${tycho.version}</version>
+
+				<configuration>
+					<publishArtifacts>true</publishArtifacts>
+					<!-- Include pack200 artifacts -->
+					<includePacked>true</includePacked>
+					<reusePack200Files>true</reusePack200Files>
+				</configuration>
+
+				<executions>
+<!-- Use to mirror update sites locally				
+					<execution>
+						<id>pre-p2-content</id>
+						<phase>package</phase>
+						<goals>
+							<goal>mirror</goal>
+						</goals>
+						<configuration>
+							<append>false</append>
+							<latestVersionOnly>false</latestVersionOnly>
+
+							<destination>${project.build.directory}/old-targetplatform</destination>
+
+							<source>
+								<repository>
+									<url>file:/../targetplatform</url>
+									<layout>p2</layout>
+								</repository>
+							</source>
+						</configuration>
+					</execution>
+-->
+					<execution>
+						<!-- Generate proper p2 site for the old style update sites -->
+						<id>generate-p2-content</id>
+						<phase>package</phase>
+						<goals>
+							<goal>publish-features-and-bundles</goal>
+						</goals>
+						<configuration>
+							<append>false</append>
+							<latestVersionOnly>false</latestVersionOnly>
+							<artifactRepositoryLocation>${project.build.directory}/targetplatform-p2</artifactRepositoryLocation>
+							<metadataRepositoryLocation>${project.build.directory}/targetplatform-p2</metadataRepositoryLocation>
+							<sourceLocation>${basedir}/../../targetplatform</sourceLocation>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+</project>
