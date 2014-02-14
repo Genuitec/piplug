@@ -32,6 +32,7 @@ public class InfocomEngine {
 	public void run() {
 	    screen.zm = zm;
 	    screen.setFocus();
+	    zm.setGameName(gameName);
 	    zm.runInMain();
 	    screen.clear();
 	    status_line.clear();
@@ -55,12 +56,15 @@ public class InfocomEngine {
     private ZStatus status_line;
     private ZScreen screen;
     private IPiPlugServices services;
+    private String gameName;
 
-    public InfocomEngine(IPiPlugServices services, InfocomComposite composite) {
+    public InfocomEngine(IPiPlugServices services, InfocomComposite composite,
+	    String gameName) {
 	this.composite = composite;
 	this.status_line = composite.getStatusLine();
 	this.screen = composite.getScreen();
 	this.services = services;
+	this.gameName = gameName;
     }
 
     public void start(URL zcodefile) {

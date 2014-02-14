@@ -45,6 +45,7 @@ public abstract class ZMachine extends Thread {
     protected boolean running = true;
 
     protected final String A2 = "0123456789.,!?_#\'\"/\\-:()";
+    private String gameName;
 
     public final static int OP_LARGE = 0;
     public final static int OP_SMALL = 1;
@@ -430,5 +431,13 @@ public abstract class ZMachine extends Thread {
 
     public void terminate() {
 	running = false;
+    }
+
+    public void setGameName(String gameName) {
+	this.gameName = gameName;
+    }
+
+    public String getGameName() {
+	return gameName;
     }
 }

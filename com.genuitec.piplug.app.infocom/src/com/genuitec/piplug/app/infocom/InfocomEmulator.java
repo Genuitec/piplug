@@ -1,5 +1,6 @@
 package com.genuitec.piplug.app.infocom;
 
+import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.swt.widgets.Composite;
 import org.osgi.framework.Bundle;
@@ -36,7 +37,8 @@ public abstract class InfocomEmulator implements IPiPlugApplication {
     @Override
     public Composite prepare(IPiPlugServices services, Composite parentStack) {
 	composite = new InfocomComposite(parentStack);
-	engine = new InfocomEngine(services, composite);
+	engine = new InfocomEngine(services, composite,
+		new Path(gameFile).lastSegment());
 	return composite;
     }
 

@@ -98,8 +98,8 @@ public class ZState {
 
 	version = zm.header.version();
 	// TODO: Fix Save/Restore Location to use Game Filename
-	fname = new File(Platform.getLocation().toOSString(), "zork.save")
-		.getAbsolutePath();
+	fname = new File(Platform.getLocation().toOSString(), zm.getGameName()
+		+ ".save").getAbsolutePath();
 	try {
 	    infile = new IFFInputFile(fname);
 	    try {
@@ -346,8 +346,8 @@ public class ZState {
 
 	try {
 	    // TODO: Fix Save/Restore Location to use Game Filename
-	    fname = new File(Platform.getLocation().toOSString(), "zork.save")
-		    .getAbsolutePath();
+	    fname = new File(Platform.getLocation().toOSString(),
+		    zm.getGameName() + ".save").getAbsolutePath();
 	    if (fname.equals("") || fname.equals("nullnull"))
 		throw new java.io.IOException("No file picked"); /*
 								  * user didn't
