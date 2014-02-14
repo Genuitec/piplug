@@ -23,6 +23,7 @@ import org.eclipse.swt.widgets.Canvas;
 import org.eclipse.swt.widgets.Composite;
 
 import russotto.zplet.ZColor;
+import russotto.zplet.zmachine.ZMachine;
 
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class ZScreen extends Canvas implements KeyListener, PaintListener {
@@ -41,6 +42,7 @@ public class ZScreen extends Canvas implements KeyListener, PaintListener {
     int zforeground = ZColor.Z_BLACK;
     int zbackground = ZColor.Z_WHITE;
     boolean hasscrolled = false;
+    public ZMachine zm;
     public final static String DEFAULT_FONT_FAMILY = "Courier";
     public final static int DEFAULT_FONT_SIZE = 20;
     final static char accent_table[] = { '\u00e4', /* a-umlaut */
@@ -243,7 +245,9 @@ public class ZScreen extends Canvas implements KeyListener, PaintListener {
 	Integer thecode = null;
 
 	while (thecode == null) {
-	    thecode = (Integer) inputcodes.syncPopFirstElement();
+	    thecode = (Integer) inputcodes.syncPopFirstElement(zm);
+	    if (!zm.isRunning())
+		throw new TerminateZMachineException();
 	}
 	return (short) thecode.intValue();
     }

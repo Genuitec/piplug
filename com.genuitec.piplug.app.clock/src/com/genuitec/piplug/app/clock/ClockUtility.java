@@ -24,7 +24,7 @@ public class ClockUtility implements IPiPlugApplication {
 
 	@Override
 	public Composite prepare(IPiPlugServices services, Composite parentStack) {
-		composite = new ClockComposite(services.getGlobalTheme(), parentStack);
+		composite = new ClockComposite(services, parentStack);
 		return composite;
 	}
 

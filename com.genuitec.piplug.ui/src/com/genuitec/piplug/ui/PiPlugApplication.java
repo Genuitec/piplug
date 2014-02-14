@@ -8,20 +8,19 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 
-import com.genuitec.piplug.api.IPiPlugServices;
 import com.genuitec.piplug.api.IPiPlugUITheme;
 
 public class PiPlugApplication implements IApplication {
 
     @Override
     public Object start(IApplicationContext context) throws Exception {
-	Display display = new Display();
 	Display.setAppName("PiPlug");
+	Display display = new Display();
 	Rectangle bounds = display.getBounds();
 	final Shell shell = new Shell(display, SWT.NO_TRIM);
-	shell.setText("PiPlug");
+	shell.setText("PiPlug: Plug in Apps to your Pi");
 	IPiPlugUITheme theme = new PiPlugUITheme(shell);
-	IPiPlugServices services = new PiPlugServices(theme);
+	PiPlugServices services = new PiPlugServices(theme);
 	shell.setBounds(0, 0, bounds.width, bounds.height);
 	GridLayout layout = new GridLayout(1, false);
 	layout.marginWidth = layout.marginHeight = 0;

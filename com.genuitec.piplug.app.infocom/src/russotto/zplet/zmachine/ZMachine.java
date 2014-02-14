@@ -9,6 +9,7 @@ import java.util.EmptyStackException;
 import java.util.Random;
 import java.util.Stack;
 
+import russotto.zplet.screenmodel.TerminateZMachineException;
 import russotto.zplet.screenmodel.ZScreen;
 import russotto.zplet.screenmodel.ZStatus;
 import russotto.zplet.screenmodel.ZWindow;
@@ -41,6 +42,7 @@ public abstract class ZMachine extends Thread {
     protected ZInstruction zi;
     protected boolean status_redirect;
     protected String status_location;
+    protected boolean running = true;
 
     protected final String A2 = "0123456789.,!?_#\'\"/\\-:()";
 
@@ -310,12 +312,13 @@ public abstract class ZMachine extends Thread {
 
     public void run() {
 	try {
-	    while (true) {
+	    while (running) {
 		// System.err.print("pc = ");
 		// System.err.println(Integer.toString(pc, 16));
 		zi.decode_instruction();
 		zi.execute();
 	    }
+	    screen.zm = null;
 	} catch (ArrayIndexOutOfBoundsException booga) {
 	    System.err.print("pc = ");
 	    System.err.println(Integer.toString(pc, 16));
@@ -326,6 +329,9 @@ public abstract class ZMachine extends Thread {
 	    System.err.println(Integer.toString(pc, 16));
 
 	    throw booga;
+	} catch (TerminateZMachineException te) {
+	    screen.zm = null;
+	    screen.clear();
 	}
     }
 
@@ -418,4 +424,11 @@ public abstract class ZMachine extends Thread {
 	return -1;
     }
 
+    public boolean isRunning() {
+	return running;
+    }
+
+    public void terminate() {
+	running = false;
+    }
 }

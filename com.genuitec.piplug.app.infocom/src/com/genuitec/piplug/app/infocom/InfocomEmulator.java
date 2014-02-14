@@ -28,7 +28,7 @@ public class InfocomEmulator implements IPiPlugApplication {
     @Override
     public Composite prepare(IPiPlugServices services, Composite parentStack) {
 	composite = new InfocomComposite(parentStack);
-	engine = new InfocomEngine(composite);
+	engine = new InfocomEngine(services, composite);
 	return composite;
     }
 

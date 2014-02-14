@@ -28,17 +28,21 @@ public class ZStatus extends Composite {
 
     public ZStatus(Composite parent) {
 	super(parent, SWT.NONE);
-	GridLayout layout = new GridLayout(3, true);
+	GridLayout layout = new GridLayout(3, false);
 	layout.marginWidth = layout.marginHeight = 0;
 	layout.horizontalSpacing = 0;
 	setLayout(layout);
 	Left = new Label(this, SWT.LEFT);
-	Left.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+	GridData gd = new GridData(SWT.FILL, SWT.FILL, true, false);
+	gd.widthHint = 200;
+	Left.setLayoutData(gd);
 	Center = new Label(this, SWT.CENTER);
-	Center.setText("use save/restore");
-	Center.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+	Center.setText("use save/restore/quit");
+	Center.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false));
 	Right = new Label(this, SWT.RIGHT);
-	Right.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+	gd = new GridData(SWT.FILL, SWT.FILL, true, false);
+	gd.widthHint = 200;
+	Right.setLayoutData(gd);
 	chronograph = false;
     }
 
@@ -100,5 +104,10 @@ public class ZStatus extends Composite {
 		hours = 12;
 	    Right.setText(hours + ":" + minutes + meridiem);
 	}
+    }
+
+    public void clear() {
+	Left.setText("");
+	Right.setText("");
     }
 }

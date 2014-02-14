@@ -208,9 +208,8 @@ public class ZJApp {
 
     }
 
-    @SuppressWarnings("deprecation")
     public void destroy() {
-	zm.stop();
+	zm.terminate();
 	zm = null;
 	screen.dispose();
 	screen = null;

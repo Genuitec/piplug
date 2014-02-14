@@ -873,7 +873,6 @@ public class ZInstruction {
 	return ZFALSE;
     }
 
-    @SuppressWarnings("deprecation")
     protected short op_quit() {
 	zm.print_ascii_char((short) '*');
 	zm.print_ascii_char((short) '*');
@@ -896,7 +895,7 @@ public class ZInstruction {
 	zm.print_ascii_char((short) '*');
 	zm.print_ascii_char((short) '*');
 	zm.print_ascii_char((short) 13);
-	zm.stop();
+	zm.terminate();
 	return ZFALSE;
     }
 

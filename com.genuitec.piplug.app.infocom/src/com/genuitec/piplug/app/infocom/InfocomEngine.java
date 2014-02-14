@@ -15,11 +15,18 @@ import russotto.zplet.zmachine.zmachine3.ZMachine3;
 import russotto.zplet.zmachine.zmachine5.ZMachine5;
 import russotto.zplet.zmachine.zmachine5.ZMachine8;
 
+import com.genuitec.piplug.api.IPiPlugServices;
+
 public class InfocomEngine {
 
     private final class RunEmulation implements Runnable {
 	public void run() {
-	zm.runInMain();
+	    screen.zm = zm;
+	    screen.setFocus();
+	    zm.runInMain();
+	    screen.clear();
+	    status_line.clear();
+	    services.switchToHome();
 	}
     }
 
@@ -27,11 +34,13 @@ public class InfocomEngine {
     private ZMachine zm;
     private ZStatus status_line;
     private ZScreen screen;
+    private IPiPlugServices services;
 
-    public InfocomEngine(InfocomComposite composite) {
+    public InfocomEngine(IPiPlugServices services, InfocomComposite composite) {
 	this.composite = composite;
 	this.status_line = composite.getStatusLine();
 	this.screen = composite.getScreen();
+	this.services = services;
     }
 
     public void start(URL zcodefile) {
@@ -43,11 +52,9 @@ public class InfocomEngine {
 	composite.getDisplay().asyncExec(new RunEmulation());
     }
 
-    @SuppressWarnings("deprecation")
     public void stop() {
-	zm.stop();
+	zm.terminate();
 	zm = null;
-	screen.clear();
     }
 
     private void startzm(URL zcodefile) {

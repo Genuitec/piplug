@@ -19,6 +19,7 @@ public class PiPlugInitializeDashboard implements Runnable {
     public void run() {
 	PiPlugDashboardComposite dashboard = new PiPlugDashboardComposite(
 		container, applications);
+	container.setHome(dashboard);
 	container.activate(dashboard);
     }
 }

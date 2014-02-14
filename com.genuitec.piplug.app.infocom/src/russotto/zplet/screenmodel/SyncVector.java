@@ -9,6 +9,8 @@ import java.util.Vector;
 
 import org.eclipse.swt.widgets.Display;
 
+import russotto.zplet.zmachine.ZMachine;
+
 @SuppressWarnings({ "rawtypes", "unchecked" })
 class SyncVector extends Vector {
     private static final long serialVersionUID = 1615647740021244904L;
@@ -17,20 +19,23 @@ class SyncVector extends Vector {
 	super();
     }
 
-    public synchronized Object syncPopFirstElement() {
-	Object first = syncFirstElement();
+    public synchronized Object syncPopFirstElement(ZMachine zm) {
+	Object first = syncFirstElement(zm);
 	if (first != null)
 	    removeElementAt(0);
 	return first;
     }
 
-    public synchronized Object syncFirstElement() {
+    public synchronized Object syncFirstElement(ZMachine zm) {
 	Display display = Display.getDefault();
-	while (isEmpty() && !display.isDisposed() && display.sleep()) {
-	    while (isEmpty() && display.readAndDispatch()) {
+	while (zm.isRunning() && isEmpty() && !display.isDisposed()
+		&& display.sleep()) {
+	    while (zm.isRunning() && isEmpty() && display.readAndDispatch()) {
 		// dispatch UI until an event
 	    }
 	}
+	if (isEmpty())
+	    return null;
 	return super.firstElement();
     }
 

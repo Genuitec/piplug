@@ -25,9 +25,9 @@ public class PiPlugDashboardComposite extends Composite {
 	}
     }
 
-    private static final String LOGO = "images/PiPlug-wText-50h.png";
     private Composite buttonsArea;
     PiPlugAppContainer container;
+    public PiPlugAppHandle runningApp;
 
     public PiPlugDashboardComposite(PiPlugAppContainer container,
 	    Set<IPiPlugApplication> applications) {
@@ -41,7 +41,7 @@ public class PiPlugDashboardComposite extends Composite {
 	setLayout(layout);
 	setBackground(theme.getBackgroundColor());
 	Label label = new Label(this, SWT.CENTER);
-	label.setImage(PiPlugUIActivator.loadImage(LOGO));
+	label.setImage(theme.getHeaderLogoImage());
 	label.setLayoutData(new GridData(SWT.RIGHT, SWT.TOP, true, false));
 	label.setBackground(theme.getBackgroundColor());
 
@@ -124,12 +124,23 @@ public class PiPlugDashboardComposite extends Composite {
 	    if (child == null)
 		child = app.prepare(container.getServices(), container);
 	    container.activate(child);
+	    label.setText(app.getBranding().getName());
+	    PiPlugDashboardComposite.this.runningApp = this;
 	    app.resume(container.getServices());
+	}
+
+	public void suspend() {
+	    app.suspend(container.getServices());
 	}
 
 	@Override
 	public void mouseUp(MouseEvent arg0) {
 	    // nothing to do
 	}
+    }
+
+    public void suspendRunningApp() {
+	if (runningApp != null)
+	    runningApp.suspend();
     }
 }
