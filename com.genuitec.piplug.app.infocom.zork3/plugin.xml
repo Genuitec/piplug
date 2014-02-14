@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension
+         point="com.genuitec.piplug.api.app">
+      <piplug-app
+            class="com.genuitec.piplug.app.infocom.Zork3Emulator"
+            img64="app64.png"
+            img128="app128.png"
+            name="Zork 3">
+      </piplug-app>
+   </extension>
+</plugin>

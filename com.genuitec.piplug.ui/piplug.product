@@ -32,6 +32,9 @@ plugins/org.eclipse.equinox.launcher.gtk.linux.arm_1.1.200.dist</programArgsLin>
       <plugin id="com.genuitec.piplug.api"/>
       <plugin id="com.genuitec.piplug.app.clock"/>
       <plugin id="com.genuitec.piplug.app.infocom"/>
+      <plugin id="com.genuitec.piplug.app.infocom.zork1"/>
+      <plugin id="com.genuitec.piplug.app.infocom.zork2"/>
+      <plugin id="com.genuitec.piplug.app.infocom.zork3"/>
       <plugin id="com.genuitec.piplug.ui"/>
       <plugin id="org.eclipse.core.commands"/>
       <plugin id="org.eclipse.core.contenttype"/>

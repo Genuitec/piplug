@@ -1,0 +1,5 @@
+The original source code this project is based on came from:
+http://sourceforge.net/projects/zplet
+
+Changes made include porting to SWT, and allowing embedding in a PiPlug interface
+for running on the Raspberry Pi.

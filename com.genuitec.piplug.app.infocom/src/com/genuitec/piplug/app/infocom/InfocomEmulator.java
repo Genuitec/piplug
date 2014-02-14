@@ -9,15 +9,23 @@ import com.genuitec.piplug.api.IPiPlugApplication;
 import com.genuitec.piplug.api.IPiPlugServices;
 import com.genuitec.piplug.api.PiPlugAppBranding;
 
-public class InfocomEmulator implements IPiPlugApplication {
+public abstract class InfocomEmulator implements IPiPlugApplication {
 
     private InfocomComposite composite;
     private InfocomEngine engine;
+    private String bundleID;
+    private PiPlugAppBranding branding;
+    private String gameFile;
+
+    public InfocomEmulator(String bundleID, String appName, String gameFile) {
+	this.bundleID = bundleID;
+	this.branding = new PiPlugAppBranding(bundleID, appName);
+	this.gameFile = gameFile;
+    }
 
     @Override
     public IPiPlugAppBranding getBranding() {
-	return new PiPlugAppBranding("com.genuitec.piplug.app.infocom",
-		"Infocom Emulator");
+	return branding;
     }
 
     @Override
@@ -35,7 +43,7 @@ public class InfocomEmulator implements IPiPlugApplication {
     @Override
     public void resume(IPiPlugServices services) {
 	Bundle bundle = getBundle();
-	engine.start(bundle.getEntry("games/zork1.z3"));
+	engine.start(bundle.getEntry(gameFile));
     }
 
     @Override
@@ -49,6 +57,6 @@ public class InfocomEmulator implements IPiPlugApplication {
     }
 
     private Bundle getBundle() {
-	return Platform.getBundle("com.genuitec.piplug.app.infocom");
+	return Platform.getBundle(bundleID);
     }
 }

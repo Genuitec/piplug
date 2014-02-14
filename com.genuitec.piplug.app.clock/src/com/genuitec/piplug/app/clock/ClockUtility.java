@@ -14,7 +14,7 @@ public class ClockUtility implements IPiPlugApplication {
 
 	@Override
 	public IPiPlugAppBranding getBranding() {
-		return new PiPlugAppBranding("com.genuitec.piplug.app.clock", "Clock Utility");
+		return new PiPlugAppBranding("com.genuitec.piplug.app.clock", "Clock");
 	}
 
 	@Override

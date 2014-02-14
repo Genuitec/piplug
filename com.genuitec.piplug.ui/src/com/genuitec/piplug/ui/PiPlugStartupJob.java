@@ -55,6 +55,9 @@ public class PiPlugStartupJob extends Job {
 	try {
 	    bundleIDs.add("com.genuitec.piplug.app.clock");
 	    bundleIDs.add("com.genuitec.piplug.app.infocom");
+	    bundleIDs.add("com.genuitec.piplug.app.infocom.zork1");
+	    bundleIDs.add("com.genuitec.piplug.app.infocom.zork2");
+	    bundleIDs.add("com.genuitec.piplug.app.infocom.zork3");
 	    Thread.sleep(500);
 	} catch (InterruptedException e) {
 	    // ignore

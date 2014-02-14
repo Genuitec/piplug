@@ -4,10 +4,10 @@
    <extension
          point="com.genuitec.piplug.api.app">
       <piplug-app
-            class="com.genuitec.piplug.app.infocom.InfocomEmulator"
+            class="com.genuitec.piplug.app.infocom.Zork2Emulator"
             img64="app64.png"
             img128="app128.png"
-            name="Infocom Emulator">
+            name="Zork 2">
       </piplug-app>
    </extension>
 </plugin>
