@@ -1,5 +1,8 @@
 package com.genuitec.piplug.ui;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -20,12 +23,34 @@ public class PiPlugStartupJob extends Job {
 
     @Override
     protected IStatus run(IProgressMonitor monitor) {
-	runInUI(new UpdateMessage("Loading plug-ins..."));
+
+	// TODO: Contact server for list of bundles
+	runInUI(new UpdateMessage("Retrieving plug-in list..."));
+	// later to dynamically get bundle list, for now, we'll hard code the
+	// list of plugins
 	try {
-	    Thread.sleep(2500);
+	    Thread.sleep(1000);
 	} catch (InterruptedException e) {
 	    // ignore
 	}
+	// TODO: Download bundles from remote server
+	runInUI(new UpdateMessage("Downloading plug-ins..."));
+	try {
+	    Thread.sleep(1500);
+	} catch (InterruptedException e) {
+	    // ignore
+	}
+	// TODO: Dynamically activate bundles in runtime
+	runInUI(new UpdateMessage("Loading plug-ins..."));
+	List<String> bundleIDs = new ArrayList<String>();
+	try {
+	    bundleIDs.add("com.genuitec.piplug.app.clock");
+	    bundleIDs.add("com.genuitec.piplug.app.clock");
+	    Thread.sleep(500);
+	} catch (InterruptedException e) {
+	    // ignore
+	}
+
 	runInUI(new PiPlugInitializeDashboard(container));
 	return Status.OK_STATUS;
     }

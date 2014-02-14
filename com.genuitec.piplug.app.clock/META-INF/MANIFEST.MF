@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: PiPlug Clock App
-Bundle-SymbolicName: com.genuitec.piplug.app.clock
+Bundle-SymbolicName: com.genuitec.piplug.app.clock;singleton:=true
 Bundle-Version: 1.0.0.qualifier
 Bundle-Vendor: Genuitec, LLC
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6

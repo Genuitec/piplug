@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: PiPlug APIs
-Bundle-SymbolicName: com.genuitec.piplug.api
+Bundle-SymbolicName: com.genuitec.piplug.api;singleton:=true
 Bundle-Version: 1.0.0.qualifier
 Bundle-Vendor: Genuitec, LLC
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
