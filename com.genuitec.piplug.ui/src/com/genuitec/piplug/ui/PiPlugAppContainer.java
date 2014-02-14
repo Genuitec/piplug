@@ -5,17 +5,18 @@ import org.eclipse.swt.custom.StackLayout;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;
 
+import com.genuitec.piplug.api.IPiPlugServices;
 import com.genuitec.piplug.api.IPiPlugUITheme;
 
 public class PiPlugAppContainer extends Composite {
 
     private StackLayout stackLayout;
-    private IPiPlugUITheme theme;
+    private IPiPlugServices services;
 
-    public PiPlugAppContainer(Composite parent, IPiPlugUITheme theme) {
+    public PiPlugAppContainer(Composite parent, IPiPlugServices services) {
 	super(parent, SWT.NONE);
-	this.theme = theme;
-	setBackground(theme.getBackgroundColor());
+	this.services = services;
+	setBackground(services.getGlobalTheme().getBackgroundColor());
 	stackLayout = new StackLayout();
 	stackLayout.marginHeight = stackLayout.marginWidth = 0;
 	setLayout(stackLayout);
@@ -28,6 +29,10 @@ public class PiPlugAppContainer extends Composite {
     }
 
     public IPiPlugUITheme getTheme() {
-	return theme;
+	return services.getGlobalTheme();
+    }
+
+    public IPiPlugServices getServices() {
+	return services;
     }
 }

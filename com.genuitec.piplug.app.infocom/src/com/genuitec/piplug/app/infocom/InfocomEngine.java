@@ -17,6 +17,12 @@ import russotto.zplet.zmachine.zmachine5.ZMachine8;
 
 public class InfocomEngine {
 
+    private final class RunEmulation implements Runnable {
+	public void run() {
+	zm.runInMain();
+	}
+    }
+
     private InfocomComposite composite;
     private ZMachine zm;
     private ZStatus status_line;
@@ -31,9 +37,10 @@ public class InfocomEngine {
     public void start(URL zcodefile) {
 	if ((zm != null) && zm.isAlive()) {
 	    stop();
-	} else {
-	    startzm(zcodefile);
+	    zm = null;
 	}
+	startzm(zcodefile);
+	composite.getDisplay().asyncExec(new RunEmulation());
     }
 
     @SuppressWarnings("deprecation")

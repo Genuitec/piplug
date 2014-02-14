@@ -8,6 +8,7 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 
+import com.genuitec.piplug.api.IPiPlugServices;
 import com.genuitec.piplug.api.IPiPlugUITheme;
 
 public class PiPlugApplication implements IApplication {
@@ -15,16 +16,19 @@ public class PiPlugApplication implements IApplication {
     @Override
     public Object start(IApplicationContext context) throws Exception {
 	Display display = new Display();
+	Display.setAppName("PiPlug");
 	Rectangle bounds = display.getBounds();
 	final Shell shell = new Shell(display, SWT.NO_TRIM);
+	shell.setText("PiPlug");
 	IPiPlugUITheme theme = new PiPlugUITheme(shell);
+	IPiPlugServices services = new PiPlugServices(theme);
 	shell.setBounds(0, 0, bounds.width, bounds.height);
 	GridLayout layout = new GridLayout(1, false);
 	layout.marginWidth = layout.marginHeight = 0;
 	shell.setLayout(layout);
 	shell.setImages(theme.getShellImages());
 	shell.setBackground(theme.getBackgroundColor());
-	PiPlugAppContainer container = new PiPlugAppContainer(shell, theme);
+	PiPlugAppContainer container = new PiPlugAppContainer(shell, services);
 	PiPlugStartingUpComposite startup = new PiPlugStartingUpComposite(
 		container, theme);
 	container.activate(startup);

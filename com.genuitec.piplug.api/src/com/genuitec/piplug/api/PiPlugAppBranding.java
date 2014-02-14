@@ -22,7 +22,7 @@ public class PiPlugAppBranding implements IPiPlugAppBranding {
     public Image getImage64() {
 	if (image64 == null) {
 	    URL url = Platform.getBundle(bundleID).getEntry("app64.png");
-	    image64 = ImageDescriptor.createFromURL(url).createImage();
+	    image64 = ImageDescriptor.createFromURL(url).createImage(false);
 	}
 	return image64;
     }
@@ -31,7 +31,7 @@ public class PiPlugAppBranding implements IPiPlugAppBranding {
     public Image getImage128() {
 	if (image128 == null) {
 	    URL url = Platform.getBundle(bundleID).getEntry("app128.png");
-	    image128 = ImageDescriptor.createFromURL(url).createImage();
+	    image128 = ImageDescriptor.createFromURL(url).createImage(false);
 	}
 	return image128;
     }

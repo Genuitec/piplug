@@ -6,6 +6,8 @@ import java.util.Date;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
+import org.eclipse.swt.graphics.Font;
+import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
@@ -24,7 +26,10 @@ public class ClockComposite extends Composite {
 		layout.marginHeight = layout.marginWidth = 0;
 		setLayout(layout);
 		label = new Label(this, SWT.CENTER);
-		label.setFont(theme.getTitleFont());
+		label.setFont(new Font(getDisplay(), "Courier", 60, SWT.BOLD));
+		label.setForeground(new Color(getDisplay(), 128, 128, 190));
+		label.setBackground(getBackground());
+		label.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, true, true));
 		format = new SimpleDateFormat("H:mm:ss");
 		updateTime();
 	}

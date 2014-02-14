@@ -31,6 +31,7 @@ public class ClockUtility implements IPiPlugApplication {
 	@Override
 	public void resume(IPiPlugServices services) {
 		job = new ClockJob(composite);
+		job.schedule(100);
 	}
 
 	@Override

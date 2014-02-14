@@ -34,6 +34,10 @@ public class ClockJob extends Job implements Runnable {
 	}
 	
 	public void run() {
+		if (composite.isDisposed()) {
+			running = false;
+			return;
+		}
 		composite.updateTime();
 	}
 }
