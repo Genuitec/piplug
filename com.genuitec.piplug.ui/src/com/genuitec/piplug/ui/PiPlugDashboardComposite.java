@@ -67,7 +67,8 @@ public class PiPlugDashboardComposite extends Composite {
 	button.setBackground(theme.getBackgroundColor());
     }
 
-    private class PiPlugAppHandle extends Composite implements MouseListener {
+    private class PiPlugAppHandle extends Composite implements MouseListener,
+	    Runnable {
 
 	private IPiPlugApplication app;
 	private Label label;
@@ -88,6 +89,7 @@ public class PiPlugDashboardComposite extends Composite {
 	    setLayout(layout);
 	    Label button = new Label(this, SWT.PUSH);
 	    button.setImage(app.getBranding().getImage128());
+	    button.setBackground(theme.getBackgroundColor());
 	    GridData gd = new GridData(SWT.CENTER, SWT.CENTER, true, true);
 	    gd.heightHint = 128;
 	    gd.widthHint = 128;
@@ -98,6 +100,7 @@ public class PiPlugDashboardComposite extends Composite {
 	    label.setFont(theme.getSubtitleFont());
 	    label.setLayoutData(new GridData(SWT.FILL, SWT.BOTTOM, true, false));
 	    label.addMouseListener(this);
+	    label.setBackground(theme.getBackgroundColor());
 	    addMouseListener(this);
 	    gd = new GridData(SWT.FILL, SWT.FILL);
 	    gd.widthHint = 128;
@@ -114,6 +117,10 @@ public class PiPlugDashboardComposite extends Composite {
 	@Override
 	public void mouseDown(MouseEvent arg0) {
 	    label.setText("Loading...");
+	    getDisplay().asyncExec(this);
+	}
+
+	public void run() {
 	    if (child == null)
 		child = app.prepare(container.getServices(), container);
 	    container.activate(child);
