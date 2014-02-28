@@ -14,40 +14,80 @@ public class DaemonTests {
 
     private static final int DAEMON_PORT = 4392;
 
-	@Test
-	public void discovery() throws IOException {
+    private static final class SendDiscoveryThread extends Thread {
 
-	    byte[] bytesToSend = "find-piplug-server".getBytes("UTF-8");
-	    String expectedToReceive = "piplug-server";
+	protected DatagramSocket socket;
+	protected boolean received;
+	protected byte[] bytesToSend;
 
-		DatagramSocket client = new DatagramSocket();
-		client.setBroadcast(true);
+	public SendDiscoveryThread(DatagramSocket socket, byte[] bytesToSend) {
+	    this.socket = socket;
+	    this.received = false;
+	    this.bytesToSend = bytesToSend;
+	}
+
+	public void run() {
+	    while (!received) {
+		// re-send every quarter second
+		try {
+		    Thread.sleep(250);
+		} catch (Exception ignore) {
+		}
 
 		// broadcast on all the networks connected
-		for(NetworkInterface nic : Collections.list(NetworkInterface.getNetworkInterfaces())){
-			for(InterfaceAddress ip : nic.getInterfaceAddresses()){
-				if(ip.getBroadcast() == null){
-					continue;
-				}
-				System.out.println("Now broadcasting to " + ip.getBroadcast().getHostAddress());
-				try{
-					DatagramPacket dp = new DatagramPacket(bytesToSend, 0, bytesToSend.length, ip.getBroadcast(), DAEMON_PORT);
-					client.send(dp);
-				}catch(Exception e){
-					System.out.println("Sending secret code error " + e);
-				}													
+		try {
+		    for (NetworkInterface nic : Collections
+			    .list(NetworkInterface.getNetworkInterfaces())) {
+			for (InterfaceAddress ip : nic.getInterfaceAddresses()) {
+			    if (ip.getBroadcast() == null) {
+				continue;
+			    }
+			    try {
+				DatagramPacket dp = new DatagramPacket(
+					bytesToSend, 0, bytesToSend.length,
+					ip.getBroadcast(), DAEMON_PORT);
+				socket.send(dp);
+			    } catch (Exception e) {
+				// best effort
+			    }
 			}
+		    }
+		} catch (Exception ignore) {
+		    // best effort
 		}
-		
-		// wait for a server to respond
-		client.setSoTimeout(5000); // only wait 5 seconds for a server (either running or not)
-		byte[] buffer = new byte[16384];
-		DatagramPacket dp = new DatagramPacket(buffer, 0, bytesToSend.length);
-		client.receive(dp);
-	    String received = new String(buffer, dp.getOffset(),
-			    dp.getLength(), "UTF-8");
-	    Assert.assertEquals(expectedToReceive, received);
-	    
-	    System.out.println("Discovered server at "+dp.getAddress()+":"+dp.getPort());
+	    }
 	}
+    }
+
+    @Test
+    public void discovery() throws IOException {
+
+	byte[] bytesToSend = "find-piplug-server".getBytes("UTF-8");
+	String expectedToReceive = "piplug-server";
+
+	DatagramSocket client = new DatagramSocket();
+	client.setBroadcast(true);
+
+	System.out.println("Looking for PiPlug plug-in daemon...");
+
+	SendDiscoveryThread thread = new SendDiscoveryThread(client,
+		bytesToSend);
+	thread.start();
+	try {
+	    // wait for a server to respond
+	    client.setSoTimeout(30000); // wait 30 seconds for a server
+	    byte[] buffer = new byte[16384];
+	    DatagramPacket dp = new DatagramPacket(buffer, 0,
+		    bytesToSend.length);
+	    client.receive(dp);
+	    String received = new String(buffer, dp.getOffset(),
+		    dp.getLength(), "UTF-8");
+	    Assert.assertEquals(expectedToReceive, received);
+
+	    System.out.println("Discovered server at " + dp.getAddress() + ":"
+		    + dp.getPort());
+	} finally {
+	    thread.received = true;
+	}
+    }
 }
