@@ -35,7 +35,8 @@ public class PiPlugUIActivator implements BundleActivator {
      * org.osgi.framework.BundleActivator#stop(org.osgi.framework.BundleContext)
      */
     public void stop(BundleContext bundleContext) throws Exception {
-	registry.dispose();
+	if (registry != null)
+	    registry.dispose();
 	PiPlugUIActivator.context = null;
     }
 
