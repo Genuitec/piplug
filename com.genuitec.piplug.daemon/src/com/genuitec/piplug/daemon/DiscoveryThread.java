@@ -7,9 +7,11 @@ import java.net.DatagramSocket;
 public class DiscoveryThread extends Thread {
 
     private DatagramSocket datagramSocket;
+    private boolean debug;
 
-    public DiscoveryThread(DatagramSocket datagramSocket) {
+    public DiscoveryThread(DatagramSocket datagramSocket, boolean debug) {
 	this.datagramSocket = datagramSocket;
+	this.debug = debug;
     }
 
     public void run() {
@@ -20,7 +22,7 @@ public class DiscoveryThread extends Thread {
 	    String expectedReceive = "find-piplug-server";
 	    byte[] bytesToSend = "piplug-server".getBytes("UTF-8");
 
-	    while (true) {
+	    while (!datagramSocket.isClosed()) {
 		try {
 		    dp = new DatagramPacket(buffer, 16384);
 		    datagramSocket.receive(dp);
@@ -30,16 +32,19 @@ public class DiscoveryThread extends Thread {
 			dp = new DatagramPacket(bytesToSend, 0,
 				bytesToSend.length, dp.getAddress(),
 				dp.getPort());
-			System.out.println("Responding to discovery from "
-				+ dp.getAddress() + ":" + dp.getPort());
+			if (debug)
+			    System.out.println("Responding to discovery from "
+				    + dp.getAddress() + ":" + dp.getPort());
 			datagramSocket.send(dp);
 		    }
 		} catch (IOException ex) {
-		    System.out.println("Error listening to clients");
+		    if (!datagramSocket.isClosed())
+			ex.printStackTrace();
 		}
 	    }
 	} catch (Exception e) {
-	    System.err.println("Unable to receive connections from client");
+	    if (debug)
+		System.err.println("Unable to receive connections from client");
 	    e.printStackTrace();
 	}
 

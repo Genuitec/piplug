@@ -9,7 +9,7 @@ import fi.iki.elonen.AbstractFileWebServer;
 
 public class PiPlugDaemon extends AbstractFileWebServer {
 
-    private static final int DAEMON_PORT = 4392;
+    public static final int DAEMON_PORT = 4392;
 
     private DatagramSocket datagramSocket;
 
@@ -45,7 +45,7 @@ public class PiPlugDaemon extends AbstractFileWebServer {
 	    datagramSocket.close();
 	    throw ioe;
 	}
-	new DiscoveryThread(datagramSocket).start();
+	new DiscoveryThread(datagramSocket, !quiet).start();
     }
 
     /**

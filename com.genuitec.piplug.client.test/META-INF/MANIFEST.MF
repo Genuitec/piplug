@@ -1,0 +1,11 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: PiPlug Client Test
+Bundle-SymbolicName: com.genuitec.piplug.client.test
+Bundle-Version: 1.0.0.qualifier
+Bundle-Vendor: Genuitec, LLC
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Require-Bundle: org.eclipse.core.runtime,
+ com.genuitec.piplug.client,
+ com.genuitec.piplug.daemon,
+ org.junit

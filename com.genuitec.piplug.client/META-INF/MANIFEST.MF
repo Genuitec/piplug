@@ -1,10 +1,9 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Name: PiPlug Application Daemon
-Bundle-SymbolicName: com.genuitec.piplug.daemon;singleton:=true
+Bundle-Name: PiPlug Client Services
+Bundle-SymbolicName: com.genuitec.piplug.client
 Bundle-Version: 1.0.0.qualifier
 Bundle-Vendor: Genuitec, LLC
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
-Main-Class: com.genuitec.piplug.daemon.PiPlugDaemon
+Export-Package: com.genuitec.piplug.client
 Require-Bundle: org.eclipse.core.runtime
-Export-Package: com.genuitec.piplug.daemon
