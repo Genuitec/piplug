@@ -2,5 +2,6 @@
 <?eclipse version="3.4"?>
 <plugin>
    <extension-point id="app" name="PiPlug Plug-in Application" schema="schema/app.exsd"/>
+   <extension-point id="service" name="PiPlug Plug-in Service" schema="schema/service.exsd"/>
 
 </plugin>
