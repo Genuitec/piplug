@@ -97,21 +97,19 @@ public class DaemonTests {
 
 		}
 
-		if (1 == 2) {
-		    // change the last segment to .255
-		    byte[] addr = ip.getAddress().getAddress();
-		    addr[3] = (byte) 255;
-		    try {
-			sendDiscoveryTo(InetAddress.getByAddress(addr));
-		    } catch (UnknownHostException ignored) {
-		    }
+		// change the last segment to .255
+		byte[] addr = ip.getAddress().getAddress();
+		addr[3] = (byte) 255;
+		try {
+		    sendDiscoveryTo(InetAddress.getByAddress(addr));
+		} catch (UnknownHostException ignored) {
+		}
 
-		    // change the last two segments to .255.255
-		    addr[2] = (byte) 255;
-		    try {
-			sendDiscoveryTo(InetAddress.getByAddress(addr));
-		    } catch (UnknownHostException ignored) {
-		    }
+		// change the last two segments to .255.255
+		addr[2] = (byte) 255;
+		try {
+		    sendDiscoveryTo(InetAddress.getByAddress(addr));
+		} catch (UnknownHostException ignored) {
 		}
 	    }
 	}
