@@ -56,7 +56,7 @@ public class DaemonTests {
 
 	private void sendDiscovery(InterfaceAddress ip) {
 	    InetAddress broadcast = ip.getBroadcast();
-	    sendDiscoveryTo(ip, broadcast);
+	    sendDiscoveryTo(broadcast);
 
 	    // see if we are getting hit by:
 	    // http://bugs.java.com/bugdatabase/view_bug.do?bug_id=7158636
@@ -67,23 +67,23 @@ public class DaemonTests {
 		byte[] addr = ip.getAddress().getAddress();
 		addr[3] = (byte) 255;
 		try {
-		    sendDiscoveryTo(ip, InetAddress.getByAddress(addr));
+		    sendDiscoveryTo(InetAddress.getByAddress(addr));
 		} catch (UnknownHostException ignored) {
 		}
 
 		// change the last two segments to .255.255
 		addr[2] = (byte) 255;
 		try {
-		    sendDiscoveryTo(ip, InetAddress.getByAddress(addr));
+		    sendDiscoveryTo(InetAddress.getByAddress(addr));
 		} catch (UnknownHostException ignored) {
 		}
 	    }
 	}
 
-	private void sendDiscoveryTo(InterfaceAddress ip, InetAddress broadcast) {
+	private void sendDiscoveryTo(InetAddress broadcast) {
 	    try {
 		System.out.println("Broadcasting discovery request to "
-			+ ip.getBroadcast());
+			+ broadcast);
 		DatagramPacket dp = new DatagramPacket(bytesToSend, 0,
 			bytesToSend.length, broadcast, DAEMON_PORT);
 		socket.send(dp);
