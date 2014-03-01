@@ -3,6 +3,7 @@ package com.genuitec.piplug.daemon;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
 import java.util.Collections;
@@ -43,12 +44,33 @@ public class DaemonTests {
 				continue;
 			    }
 			    try {
+				System.out
+					.println("Broadcasting discovery request to "
+						+ ip.getBroadcast());
 				DatagramPacket dp = new DatagramPacket(
 					bytesToSend, 0, bytesToSend.length,
 					ip.getBroadcast(), DAEMON_PORT);
 				socket.send(dp);
 			    } catch (Exception e) {
 				// best effort
+			    }
+			    if (ip.getAddress().getAddress()[0] != ip
+				    .getBroadcast().getAddress()[0]) {
+				try {
+				    byte[] addr = ip.getAddress().getAddress();
+				    addr[3] = (byte) 255;
+				    InetAddress otherBroadcast = InetAddress
+					    .getByAddress(addr);
+				    System.out
+					    .println("Broadcasting discovery request to "
+						    + otherBroadcast);
+				    DatagramPacket dp = new DatagramPacket(
+					    bytesToSend, 0, bytesToSend.length,
+					    otherBroadcast, DAEMON_PORT);
+				    socket.send(dp);
+				} catch (Exception e) {
+				    // best effort
+				}
 			    }
 			}
 		    }
