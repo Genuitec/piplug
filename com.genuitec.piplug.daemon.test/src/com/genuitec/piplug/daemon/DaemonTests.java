@@ -41,8 +41,7 @@ public class DaemonTests {
 		    for (NetworkInterface nic : Collections
 			    .list(NetworkInterface.getNetworkInterfaces())) {
 			for (InterfaceAddress ip : nic.getInterfaceAddresses()) {
-
-			    if (ip.getBroadcast() == null) {
+			    if (ip == null || ip.getBroadcast() == null) {
 				continue;
 			    }
 			    sendDiscovery(ip);
