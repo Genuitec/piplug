@@ -6,6 +6,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
+import java.net.UnknownHostException;
 import java.util.Collections;
 
 import org.junit.Assert;
@@ -40,43 +41,54 @@ public class DaemonTests {
 		    for (NetworkInterface nic : Collections
 			    .list(NetworkInterface.getNetworkInterfaces())) {
 			for (InterfaceAddress ip : nic.getInterfaceAddresses()) {
+
 			    if (ip.getBroadcast() == null) {
 				continue;
 			    }
-			    try {
-				System.out
-					.println("Broadcasting discovery request to "
-						+ ip.getBroadcast());
-				DatagramPacket dp = new DatagramPacket(
-					bytesToSend, 0, bytesToSend.length,
-					ip.getBroadcast(), DAEMON_PORT);
-				socket.send(dp);
-			    } catch (Exception e) {
-				// best effort
-			    }
-			    if (ip.getAddress().getAddress()[0] != ip
-				    .getBroadcast().getAddress()[0]) {
-				try {
-				    byte[] addr = ip.getAddress().getAddress();
-				    addr[3] = (byte) 255;
-				    InetAddress otherBroadcast = InetAddress
-					    .getByAddress(addr);
-				    System.out
-					    .println("Broadcasting discovery request to "
-						    + otherBroadcast);
-				    DatagramPacket dp = new DatagramPacket(
-					    bytesToSend, 0, bytesToSend.length,
-					    otherBroadcast, DAEMON_PORT);
-				    socket.send(dp);
-				} catch (Exception e) {
-				    // best effort
-				}
-			    }
+			    sendDiscovery(ip);
 			}
 		    }
 		} catch (Exception ignore) {
 		    // best effort
 		}
+	    }
+	}
+
+	private void sendDiscovery(InterfaceAddress ip) {
+	    InetAddress broadcast = ip.getBroadcast();
+	    sendDiscoveryTo(ip, broadcast);
+
+	    // see if we are getting hit by:
+	    // http://bugs.java.com/bugdatabase/view_bug.do?bug_id=7158636
+	    if (ip.getAddress().getAddress()[0] != ip.getBroadcast()
+		    .getAddress()[0]) {
+
+		// change the last segment to .255
+		byte[] addr = ip.getAddress().getAddress();
+		addr[3] = (byte) 255;
+		try {
+		    sendDiscoveryTo(ip, InetAddress.getByAddress(addr));
+		} catch (UnknownHostException ignored) {
+		}
+
+		// change the last two segments to .255.255
+		addr[2] = (byte) 255;
+		try {
+		    sendDiscoveryTo(ip, InetAddress.getByAddress(addr));
+		} catch (UnknownHostException ignored) {
+		}
+	    }
+	}
+
+	private void sendDiscoveryTo(InterfaceAddress ip, InetAddress broadcast) {
+	    try {
+		System.out.println("Broadcasting discovery request to "
+			+ ip.getBroadcast());
+		DatagramPacket dp = new DatagramPacket(bytesToSend, 0,
+			bytesToSend.length, broadcast, DAEMON_PORT);
+		socket.send(dp);
+	    } catch (Exception e) {
+		// best effort
 	    }
 	}
     }
