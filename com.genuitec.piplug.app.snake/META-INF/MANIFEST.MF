@@ -1,0 +1,14 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: %pluginName
+Bundle-SymbolicName: com.genuitec.piplug.app.snake;singleton:=true
+Bundle-Version: 1.0.0
+Bundle-ClassPath: snake.jar
+Bundle-Activator: es.org.chemi.games.snake.SnakePlugin
+Bundle-Vendor: Chemi ©
+Bundle-Localization: plugin
+Require-Bundle: org.eclipse.core.runtime,
+ org.eclipse.jface,
+ com.genuitec.piplug.api
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6

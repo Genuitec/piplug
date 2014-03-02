@@ -45,12 +45,12 @@ public class PiPlugDashboardComposite extends Composite {
 
 	buttonsArea = new Composite(this, SWT.NONE);
 	buttonsArea.setBackground(theme.getBackgroundColor());
-	layout = new GridLayout(applications.size(), false);
+	layout = new GridLayout(Math.min(4, applications.size()), false);
 	layout.marginWidth = layout.marginHeight = 0;
 	layout.horizontalSpacing = 40;
 	buttonsArea.setLayout(layout);
 	GridData gd = new GridData(SWT.CENTER, SWT.CENTER, true, true);
-	int size = applications.size();
+	int size = layout.numColumns;
 	gd.widthHint = (size * 256) + ((size - 1) * 40);
 	buttonsArea.setLayoutData(gd);
 
