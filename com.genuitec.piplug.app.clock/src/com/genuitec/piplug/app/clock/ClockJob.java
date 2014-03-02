@@ -10,34 +10,34 @@ import org.eclipse.swt.widgets.Display;
 
 public class ClockJob extends Job implements Runnable {
 
-	private boolean running = true;
-	private ClockComposite composite;
-	
-	public ClockJob(ClockComposite composite) {
-		super("clock");
-		this.composite = composite;
-	}
+    private boolean running = true;
+    private ClockComposite composite;
 
-	@Override
-	protected IStatus run(IProgressMonitor monitor) {
-		Display.getDefault().syncExec(this);
-		if (running) {
-			Calendar cal = Calendar.getInstance();
-			int milli = cal.get(Calendar.MILLISECOND);
-			schedule(1000 - milli);
-		}
-		return Status.OK_STATUS;
+    public ClockJob(ClockComposite composite) {
+	super("clock");
+	this.composite = composite;
+    }
+
+    @Override
+    protected IStatus run(IProgressMonitor monitor) {
+	Display.getDefault().syncExec(this);
+	if (running) {
+	    Calendar cal = Calendar.getInstance();
+	    int milli = cal.get(Calendar.MILLISECOND);
+	    schedule(1000 - milli);
 	}
-	
-	public void stop() {
-		running = false;
+	return Status.OK_STATUS;
+    }
+
+    public void stop() {
+	running = false;
+    }
+
+    public void run() {
+	if (composite.isDisposed()) {
+	    running = false;
+	    return;
 	}
-	
-	public void run() {
-		if (composite.isDisposed()) {
-			running = false;
-			return;
-		}
-		composite.updateTime();
-	}
+	composite.updateTime();
+    }
 }

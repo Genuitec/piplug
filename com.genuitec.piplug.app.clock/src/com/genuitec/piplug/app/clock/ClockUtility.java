@@ -9,38 +9,38 @@ import com.genuitec.piplug.api.PiPlugAppBranding;
 
 public class ClockUtility implements IPiPlugApplication {
 
-	private ClockComposite composite;
-	private ClockJob job;
+    private ClockComposite composite;
+    private ClockJob job;
 
-	@Override
-	public IPiPlugAppBranding getBranding() {
-		return new PiPlugAppBranding("com.genuitec.piplug.app.clock", "Clock");
-	}
+    @Override
+    public IPiPlugAppBranding getBranding() {
+	return new PiPlugAppBranding("com.genuitec.piplug.app.clock", "Clock");
+    }
 
-	@Override
-	public void installed(IPiPlugServices services) {
-		// nothing needed at installation time
-	}
+    @Override
+    public void installed(IPiPlugServices services) {
+	// nothing needed at installation time
+    }
 
-	@Override
-	public Composite prepare(IPiPlugServices services, Composite parentStack) {
-		composite = new ClockComposite(services, parentStack);
-		return composite;
-	}
+    @Override
+    public Composite prepare(IPiPlugServices services, Composite parentStack) {
+	composite = new ClockComposite(services, parentStack);
+	return composite;
+    }
 
-	@Override
-	public void resume(IPiPlugServices services) {
-		job = new ClockJob(composite);
-		job.schedule(100);
-	}
+    @Override
+    public void resume(IPiPlugServices services) {
+	job = new ClockJob(composite);
+	job.schedule(100);
+    }
 
-	@Override
-	public void suspend(IPiPlugServices services) {
-		job.stop();
-	}
+    @Override
+    public void suspend(IPiPlugServices services) {
+	job.stop();
+    }
 
-	@Override
-	public void shutdown(IPiPlugServices services) {
-		// nothing needed during shutdown
-	}
+    @Override
+    public void shutdown(IPiPlugServices services) {
+	// nothing needed during shutdown
+    }
 }
