@@ -5,13 +5,13 @@ import java.net.URL;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.swt.graphics.Image;
+import org.osgi.framework.Bundle;
 
 public class PiPlugAppBranding implements IPiPlugAppBranding {
 
     private String bundleID;
     private String appName;
-    private Image image64;
-    private Image image128;
+    private Image image;
 
     public PiPlugAppBranding(String bundleID, String appName) {
 	this.bundleID = bundleID;
@@ -19,21 +19,13 @@ public class PiPlugAppBranding implements IPiPlugAppBranding {
     }
 
     @Override
-    public Image getImage64() {
-	if (image64 == null) {
-	    URL url = Platform.getBundle(bundleID).getEntry("app64.png");
-	    image64 = ImageDescriptor.createFromURL(url).createImage(false);
+    public Image getImage() {
+	if (image == null) {
+	    Bundle bundle = Platform.getBundle(bundleID);
+	    URL url = bundle.getEntry("app.png");
+	    image = ImageDescriptor.createFromURL(url).createImage(false);
 	}
-	return image64;
-    }
-
-    @Override
-    public Image getImage128() {
-	if (image128 == null) {
-	    URL url = Platform.getBundle(bundleID).getEntry("app128.png");
-	    image128 = ImageDescriptor.createFromURL(url).createImage(false);
-	}
-	return image128;
+	return image;
     }
 
     @Override

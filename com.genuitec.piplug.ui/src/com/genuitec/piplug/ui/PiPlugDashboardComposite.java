@@ -3,13 +3,11 @@ package com.genuitec.piplug.ui;
 import java.util.Set;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.MouseListener;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 
@@ -18,9 +16,9 @@ import com.genuitec.piplug.api.IPiPlugUITheme;
 
 public class PiPlugDashboardComposite extends Composite {
 
-    private final class CloseShellListener extends SelectionAdapter {
+    private final class CloseShellListener extends MouseAdapter {
 	@Override
-	public void widgetSelected(SelectionEvent arg0) {
+	public void mouseDown(MouseEvent e) {
 	    getShell().dispose();
 	}
     }
@@ -36,13 +34,13 @@ public class PiPlugDashboardComposite extends Composite {
 
 	IPiPlugUITheme theme = container.getTheme();
 	GridLayout layout = new GridLayout(1, false);
-	layout.marginWidth = 32;
-	layout.marginHeight = 26;
+	layout.marginWidth = 48;
+	layout.marginHeight = 48;
 	setLayout(layout);
 	setBackground(theme.getBackgroundColor());
 	Label label = new Label(this, SWT.CENTER);
 	label.setImage(theme.getHeaderLogoImage());
-	label.setLayoutData(new GridData(SWT.RIGHT, SWT.TOP, true, false));
+	label.setLayoutData(new GridData(SWT.CENTER, SWT.TOP, true, false));
 	label.setBackground(theme.getBackgroundColor());
 
 	buttonsArea = new Composite(this, SWT.NONE);
@@ -53,18 +51,20 @@ public class PiPlugDashboardComposite extends Composite {
 	buttonsArea.setLayout(layout);
 	GridData gd = new GridData(SWT.CENTER, SWT.CENTER, true, true);
 	int size = applications.size();
-	gd.widthHint = (size * 128) + ((size - 1) * 40);
-	gd.heightHint = 160;
+	gd.widthHint = (size * 256) + ((size - 1) * 40);
 	buttonsArea.setLayoutData(gd);
 
 	for (IPiPlugApplication next : applications)
 	    new PiPlugAppHandle(buttonsArea, next, theme);
 
-	Button button = new Button(this, SWT.NONE);
-	button.setLayoutData(new GridData(SWT.CENTER, SWT.BOTTOM, true, false));
-	button.setText("Close PiPlug");
-	button.addSelectionListener(new CloseShellListener());
-	button.setBackground(theme.getBackgroundColor());
+	Label quit = new Label(this, SWT.NONE);
+	gd = new GridData(SWT.RIGHT, SWT.BOTTOM, true, false);
+	gd.widthHint = 48;
+	gd.heightHint = 48;
+	quit.setLayoutData(gd);
+	quit.setImage(PiPlugUIActivator.loadImage("images/icon-quit48.png"));
+	quit.addMouseListener(new CloseShellListener());
+	quit.setBackground(theme.getBackgroundColor());
     }
 
     private class PiPlugAppHandle extends Composite implements MouseListener,
@@ -88,24 +88,24 @@ public class PiPlugDashboardComposite extends Composite {
 	    layout.verticalSpacing = 10;
 	    setLayout(layout);
 	    Label button = new Label(this, SWT.PUSH);
-	    button.setImage(app.getBranding().getImage128());
+	    button.setImage(app.getBranding().getImage());
 	    button.setBackground(theme.getBackgroundColor());
-	    GridData gd = new GridData(SWT.CENTER, SWT.CENTER, true, true);
-	    gd.heightHint = 128;
-	    gd.widthHint = 128;
+	    GridData gd = new GridData(SWT.FILL, SWT.FILL, true, true);
+	    gd.heightHint = 256;
+	    gd.widthHint = 166;
 	    button.setLayoutData(gd);
 	    button.addMouseListener(this);
 	    label = new Label(this, SWT.CENTER);
 	    label.setText(app.getBranding().getName());
-	    label.setFont(theme.getSubtitleFont());
-	    label.setForeground(theme.getSubtitleColor());
+	    label.setFont(theme.getTitleFont());
+	    label.setForeground(theme.getTitleColor());
 	    label.setLayoutData(new GridData(SWT.FILL, SWT.BOTTOM, true, false));
 	    label.addMouseListener(this);
 	    label.setBackground(theme.getBackgroundColor());
 	    addMouseListener(this);
 	    gd = new GridData(SWT.FILL, SWT.FILL);
-	    gd.widthHint = 128;
-	    gd.heightHint = 154;
+	    gd.widthHint = 256;
+	    gd.heightHint = 206;
 	    setLayoutData(gd);
 	    this.setBackground(theme.getBackgroundColor());
 	}

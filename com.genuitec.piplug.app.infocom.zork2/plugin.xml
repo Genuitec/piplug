@@ -5,8 +5,7 @@
          point="com.genuitec.piplug.api.app">
       <piplug-app
             class="com.genuitec.piplug.app.infocom.Zork2Emulator"
-            img64="app64.png"
-            img128="app128.png"
+            image="app.png"
             name="Zork 2">
       </piplug-app>
    </extension>

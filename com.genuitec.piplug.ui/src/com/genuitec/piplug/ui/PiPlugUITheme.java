@@ -20,10 +20,10 @@ public class PiPlugUITheme implements IPiPlugUITheme {
 	backgroundColor = new Color(Display.getDefault(), 0, 0, 0);
 	FontData fontBase = shell.getFont().getFontData()[0];
 	titleFont = new Font(Display.getDefault(), fontBase.getName(),
-		fontBase.getHeight() + 4, SWT.NONE);
+		fontBase.getHeight() + 8, SWT.NONE);
 	titleColor = new Color(Display.getDefault(), 210, 210, 210);
 	subtitleFont = new Font(Display.getDefault(), fontBase.getName(),
-		fontBase.getHeight() + 2, SWT.NONE);
+		fontBase.getHeight() + 5, SWT.NONE);
 	subtitleColor = new Color(Display.getDefault(), 160, 160, 160);
     }
 
@@ -40,7 +40,7 @@ public class PiPlugUITheme implements IPiPlugUITheme {
 
     @Override
     public Image getHeaderLogoImage() {
-	return PiPlugUIActivator.loadImage("images/PiPlug-wText-100h.png");
+	return PiPlugUIActivator.loadImage("images/PiPlug-wText-50h.png");
     }
 
     @Override
