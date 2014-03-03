@@ -12,18 +12,20 @@ public class ClockJob extends Job implements Runnable {
 
     private boolean running = true;
     private ClockComposite composite;
+    private Calendar calendar;
 
     public ClockJob(ClockComposite composite) {
 	super("clock");
 	this.composite = composite;
+	this.calendar = Calendar.getInstance();
     }
 
     @Override
     protected IStatus run(IProgressMonitor monitor) {
 	Display.getDefault().syncExec(this);
 	if (running) {
-	    Calendar cal = Calendar.getInstance();
-	    int milli = cal.get(Calendar.MILLISECOND);
+	    calendar.setTimeInMillis(System.currentTimeMillis());
+	    int milli = calendar.get(Calendar.MILLISECOND);
 	    schedule(1000 - milli);
 	}
 	return Status.OK_STATUS;
