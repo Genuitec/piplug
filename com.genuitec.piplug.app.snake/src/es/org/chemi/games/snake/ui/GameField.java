@@ -298,9 +298,12 @@ public class GameField extends Composite {
     public void pauseGame() {
 	SnakePlugin.trace(this.getClass().getName(), "Pausing the game."); //$NON-NLS-1$
 	isGamePaused = true;
-	fruits.pauseGame();
-	prize.pauseGame();
-	snake.pauseGame();
+	if (fruits != null)
+	    fruits.pauseGame();
+	if (prize != null)
+	    prize.pauseGame();
+	if (snake != null)
+	    snake.pauseGame();
     }
 
     public boolean isGamePaused() {
