@@ -48,6 +48,7 @@ public class PiPlugCore {
 	}
 
 	private static final String PIPLUG_APP_EXTENSION_POINT = "com.genuitec.piplug.api.app";
+	private static final String PIPLUG_SERVICE_EXTENSION_POINT = "com.genuitec.piplug.api.service";
 	private static final PiPlugCore instance = new PiPlugCore();
 	private Map<PiPlugBundleIdentity, PiPlugBundle> bundles = new HashMap<PiPlugBundleIdentity, PiPlugBundle>();
 	private Set<IPiPlugApplicationListener> listeners = new HashSet<IPiPlugApplicationListener>();
@@ -169,10 +170,16 @@ public class PiPlugCore {
 				.addExtensionDeltaListener(new ExtensionDeltaListener());
 
 		// Second, read the existing extensions
-		IPluginModelBase[] plugins = extensionsRegistry.findExtensionPlugins(
-				PIPLUG_APP_EXTENSION_POINT, true);
-		if (null != plugins) {
-			for (IPluginModelBase plugin : plugins) {
+		loadExtensions(PIPLUG_APP_EXTENSION_POINT, extensionsRegistry);
+		loadExtensions(PIPLUG_SERVICE_EXTENSION_POINT, extensionsRegistry);
+	}
+
+	private void loadExtensions(String extensionPointId,
+			PDEExtensionRegistry extensionsRegistry) {
+		IPluginModelBase[] appPlugins = extensionsRegistry.findExtensionPlugins(
+				extensionPointId, true);
+		if (null != appPlugins) {
+			for (IPluginModelBase plugin : appPlugins) {
 				PiPlugBundle bundle = createPiPlugBundle(plugin);
 				if (null == bundle)
 					continue;
