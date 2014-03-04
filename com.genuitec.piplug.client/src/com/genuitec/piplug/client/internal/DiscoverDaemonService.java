@@ -118,8 +118,6 @@ public class DiscoverDaemonService extends Thread {
 
     private void sendDiscoveryTo(InetAddress broadcast) {
 	try {
-	    System.out
-		    .println("Broadcasting discovery request to " + broadcast);
 	    DatagramPacket dp = new DatagramPacket(bytesToSend, 0,
 		    bytesToSend.length, broadcast, DAEMON_PORT);
 	    socket.send(dp);
@@ -136,8 +134,6 @@ public class DiscoverDaemonService extends Thread {
 
 	    DatagramSocket client = new DatagramSocket();
 	    client.setBroadcast(true);
-
-	    System.out.println("Looking for PiPlug plug-in daemon...");
 
 	    DiscoverDaemonService thread = new DiscoverDaemonService(client,
 		    bytesToSend);

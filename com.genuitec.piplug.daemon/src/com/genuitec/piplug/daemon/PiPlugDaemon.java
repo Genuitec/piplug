@@ -6,6 +6,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 
 import fi.iki.elonen.AbstractFileWebServer;
+import fi.iki.elonen.NanoHTTPD.Response.Status;
 
 public class PiPlugDaemon extends AbstractFileWebServer {
 
@@ -62,6 +63,8 @@ public class PiPlugDaemon extends AbstractFileWebServer {
 
     @Override
     protected Response handle(IHTTPSession session) {
+	if (session.getUri().equals("/connect"))
+	    return new Response(Status.OK, "text/ascii", "connection-alive");
 	if (session.getUri().startsWith("/plugin/")) {
 
 	}

@@ -18,24 +18,39 @@ public class PiPlugClientTests {
 
     private static PiPlugDaemon daemon;
     private static File storageLocation;
+    private static InetSocketAddress directAt;
 
     @BeforeClass
     public static void startDaemon() throws Exception {
 	storageLocation = File.createTempFile("piplug", "test");
 	storageLocation.delete();
 	storageLocation.mkdirs();
-	daemon = new PiPlugDaemon(storageLocation, true);
+	daemon = new PiPlugDaemon(storageLocation, false);
 	daemon.start();
+	directAt = new InetSocketAddress("127.0.0.1", PiPlugDaemon.DAEMON_PORT);
     }
 
     @Test
-    public void discover() throws CoreException {
+    public void discoverAndConnect() throws CoreException {
 	PiPlugClient client = new PiPlugClient();
 	try {
 	    InetSocketAddress discoveredAt = client.discoverServer(30000);
 	    assertNotNull("server discovered", discoveredAt);
 	    assertEquals("discovered port", PiPlugDaemon.DAEMON_PORT,
 		    discoveredAt.getPort());
+	    client.connectTo(discoveredAt);
+	} finally {
+	    client.disconnect();
+	}
+    }
+
+    @Test
+    public void listBundlesAtStart() throws CoreException {
+	PiPlugClient client = new PiPlugClient();
+	try {
+	    client.connectTo(directAt);
+	    assertNotNull("bundles listing", client.listBundles());
+	    assertEquals("no bundles on start", 0, client.listBundles().size());
 	} finally {
 	    client.disconnect();
 	}
