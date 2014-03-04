@@ -346,8 +346,10 @@ public class ZState {
 
 	try {
 	    // TODO: Fix Save/Restore Location to use Game Filename
-	    fname = new File(Platform.getLocation().toOSString(),
-		    zm.getGameName() + ".save").getAbsolutePath();
+	    File file = new File(Platform.getLocation().toOSString(),
+		    zm.getGameName() + ".save");
+	    file.getParentFile().mkdirs();
+	    fname = file.getAbsolutePath();
 	    if (fname.equals("") || fname.equals("nullnull"))
 		throw new java.io.IOException("No file picked"); /*
 								  * user didn't
