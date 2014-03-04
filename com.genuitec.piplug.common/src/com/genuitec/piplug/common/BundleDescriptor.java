@@ -1,15 +1,23 @@
-package com.genuitec.piplug.client;
+package com.genuitec.piplug.common;
 
 import java.util.Date;
 
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+
 import org.osgi.framework.Version;
 
+@XmlRootElement(name = "descriptor")
 public class BundleDescriptor {
 
     private String bundleID;
     private Version version;
     private Date firstAdded;
     private Date lastUpdatedOn;
+
+    public BundleDescriptor() {
+	// default constructor
+    }
 
     public BundleDescriptor(String bundleID, Version version, Date firstAdded,
 	    Date lastUpdatedOn) {
@@ -27,6 +35,7 @@ public class BundleDescriptor {
 	this.bundleID = bundleID;
     }
 
+    @XmlJavaTypeAdapter(value = VersionXmlAdapter.class)
     public Version getVersion() {
 	return version;
     }

@@ -7,5 +7,6 @@ Bundle-Vendor: Genuitec, LLC
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Require-Bundle: org.eclipse.core.runtime,
  com.genuitec.piplug.client,
+ com.genuitec.piplug.common,
  com.genuitec.piplug.daemon,
  org.junit

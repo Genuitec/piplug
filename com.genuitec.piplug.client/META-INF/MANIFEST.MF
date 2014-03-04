@@ -6,4 +6,5 @@ Bundle-Version: 1.0.0.qualifier
 Bundle-Vendor: Genuitec, LLC
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Export-Package: com.genuitec.piplug.client
-Require-Bundle: org.eclipse.core.runtime
+Require-Bundle: org.eclipse.core.runtime,
+ com.genuitec.piplug.common
