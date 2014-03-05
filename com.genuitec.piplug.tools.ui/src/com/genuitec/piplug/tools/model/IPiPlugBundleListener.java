@@ -1,6 +1,6 @@
 package com.genuitec.piplug.tools.model;
 
-public interface IPiPlugApplicationListener {
+public interface IPiPlugBundleListener {
 
 	void bundleAdded(PiPlugBundle bundle);
 

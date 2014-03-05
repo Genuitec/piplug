@@ -4,10 +4,10 @@ import org.eclipse.ui.IWorkbenchPartSite;
 
 import com.genuitec.piplug.tools.ui.Activator;
 
-public class PiPlugRunLocallyAction extends PiPlugSelectionListenerAction {
+public class RunLocallyAction extends ExtensionSelectionListenerAction {
 
 
-	protected PiPlugRunLocallyAction(IWorkbenchPartSite site) {
+	protected RunLocallyAction(IWorkbenchPartSite site) {
 		super("Run locally", site);
 		setToolTipText("Run the selected apps locally");
 		setImageDescriptor(Activator.imageDescriptorFromPlugin(Activator.PLUGIN_ID, "resources/run.gif"));

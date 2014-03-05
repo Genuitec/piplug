@@ -20,7 +20,7 @@ import org.eclipse.ui.IActionBars;
 import org.eclipse.ui.IWorkbenchActionConstants;
 import org.eclipse.ui.part.ViewPart;
 
-public class PiPlugAppsView extends ViewPart {
+public class DeployView extends ViewPart {
 
 	public enum AppsViewColumn {
 		APPLICATION, TYPE, BUNDLE, STATE
@@ -37,7 +37,7 @@ public class PiPlugAppsView extends ViewPart {
 	private List<TableViewerColumn> columns;
 
 	// required for extension point
-	public PiPlugAppsView() {
+	public DeployView() {
 	}
 
 	public void createPartControl(Composite parent) {
@@ -45,8 +45,8 @@ public class PiPlugAppsView extends ViewPart {
 		viewer = new TableViewer(parent, SWT.MULTI | SWT.H_SCROLL
 				| SWT.V_SCROLL | SWT.FULL_SELECTION);
 		createTableColumns();
-		viewer.setContentProvider(new PiPlugAppsViewContentProvider(this));
-		viewer.setComparator(new PiPlugAppsComparator());
+		viewer.setContentProvider(new DeployContentProvider(this));
+		viewer.setComparator(new ExtensionNameComparator());
 		getSite().setSelectionProvider(viewer);
 
 		Table table = viewer.getTable();
@@ -74,26 +74,26 @@ public class PiPlugAppsView extends ViewPart {
 		TableViewerColumn appColumn = new TableViewerColumn(viewer, SWT.NONE);
 		appColumn.getColumn().setWidth(200);
 		appColumn.getColumn().setText("Application");
-		appColumn.setLabelProvider(new PiPlugAppColumnLabelProvider(
+		appColumn.setLabelProvider(new ExtensionNameLabelProvider(
 				imageRegistry));
 		appColumn.getColumn().setData("id", AppsViewColumn.APPLICATION);
 
 		TableViewerColumn typeColumn = new TableViewerColumn(viewer, SWT.NONE);
 		typeColumn.getColumn().setWidth(60);
 		typeColumn.getColumn().setText("Type");
-		typeColumn.setLabelProvider(new PiPlugAppTypeColumnLabelProvider());
+		typeColumn.setLabelProvider(new ExtensionTypeLabelProvider());
 		appColumn.getColumn().setData("id", AppsViewColumn.TYPE);
 
 		TableViewerColumn bundleColumn = new TableViewerColumn(viewer, SWT.NONE);
 		bundleColumn.getColumn().setWidth(300);
 		bundleColumn.getColumn().setText("Bundle");
-		bundleColumn.setLabelProvider(new PiPlugBundleColumnLabelProvider());
+		bundleColumn.setLabelProvider(new ExtensionBundleLabelProvider());
 		appColumn.getColumn().setData("id", AppsViewColumn.BUNDLE);
 
 		TableViewerColumn statusColumn = new TableViewerColumn(viewer, SWT.NONE);
 		statusColumn.getColumn().setWidth(200);
 		statusColumn.getColumn().setText("State");
-		statusColumn.setLabelProvider(new PiPlugDeploymentStateColumnLabelProvider());
+		statusColumn.setLabelProvider(new ExtensionStateLabelProvider());
 		appColumn.getColumn().setData("id", AppsViewColumn.STATE);
 
 	}
@@ -112,7 +112,7 @@ public class PiPlugAppsView extends ViewPart {
 		menuMgr.setRemoveAllWhenShown(true);
 		menuMgr.addMenuListener(new IMenuListener() {
 			public void menuAboutToShow(IMenuManager manager) {
-				PiPlugAppsView.this.fillContextMenu(manager);
+				DeployView.this.fillContextMenu(manager);
 			}
 		});
 		Menu menu = menuMgr.createContextMenu(viewer.getControl());
@@ -140,8 +140,8 @@ public class PiPlugAppsView extends ViewPart {
 	}
 
 	private void makeActions() {
-		deployAction = new PiPlugDeployAction(getSite());
-		runLocallyAction = new PiPlugRunLocallyAction(getSite());
+		deployAction = new DeployAction(getSite());
+		runLocallyAction = new RunLocallyAction(getSite());
 	}
 
 	/**

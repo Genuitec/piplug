@@ -9,11 +9,11 @@
             id="com.genuitec.piplug.tools.ui">
       </category>
       <view
-            name="PiPlug Apps"
+            name="PiPlug Deploy"
             icon="icons/sample.gif"
             category="com.genuitec.piplug.tools.ui"
-            class="com.genuitec.piplug.tools.ui.views.PiPlugAppsView"
-            id="com.genuitec.piplug.tools.ui.views.PiPlugAppsView">
+            class="com.genuitec.piplug.tools.ui.views.DeployView"
+            id="com.genuitec.piplug.tools.ui.views.PiPlugDeployView">
       </view>
    </extension>
    <extension
@@ -24,7 +24,7 @@
                ratio="0.5"
                relative="org.eclipse.ui.views.ProblemView"
                relationship="right"
-               id="com.genuitec.piplug.tools.ui.views.PiPlugAppsView">
+               id="com.genuitec.piplug.tools.ui.views.PiPlugDeployView">
          </view>
       </perspectiveExtension>
    </extension>

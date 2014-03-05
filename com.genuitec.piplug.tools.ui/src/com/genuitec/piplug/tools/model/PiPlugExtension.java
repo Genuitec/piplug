@@ -16,15 +16,15 @@ import org.osgi.framework.Bundle;
 import com.genuitec.piplug.tools.ui.Activator;
 
 
-public class PiPlugApplicationExtension implements Comparable<PiPlugApplicationExtension>{
+public class PiPlugExtension implements Comparable<PiPlugExtension>{
 
 
 	private String image;
 	private String name;
 	private PiPlugBundle bundle;
-	private PiPlugExtensionType type;
+	private ExtensionType type;
 
-	public PiPlugApplicationExtension(String appName, String image, PiPlugExtensionType type) {
+	public PiPlugExtension(String appName, String image, ExtensionType type) {
 		this.name = appName;
 		this.image = image;
 		this.type = type;
@@ -53,7 +53,7 @@ public class PiPlugApplicationExtension implements Comparable<PiPlugApplicationE
 		IProject project = bundle.getProject();
 		if (project == null) {
 			// must be loaded from the extension registry
-			Bundle osgiBundle = Platform.getBundle(bundle.getBundleId());
+			Bundle osgiBundle = Platform.getBundle(bundle.getDescriptor().getBundleID());
 			if (osgiBundle == null) {
 				// OK, bad data
 				return null;
@@ -77,21 +77,21 @@ public class PiPlugApplicationExtension implements Comparable<PiPlugApplicationE
 		try {
 			return ((IFile)resource).getContents();
 		} catch (CoreException e) {
-			Activator.getDefault().getLog().log(new Status(IStatus.ERROR, Activator.PLUGIN_ID, "Could not read image " + this.bundle.getBundleId() + "/" + getImage(), e));
+			Activator.getDefault().getLog().log(new Status(IStatus.ERROR, Activator.PLUGIN_ID, "Could not read image " + bundle.getDescriptor() + "/" + getImage(), e));
 			return null;
 		}
 	}
 
 	@Override
-	public int compareTo(PiPlugApplicationExtension o) {
+	public int compareTo(PiPlugExtension o) {
 		return name.compareTo(o.name);
 	}
 
-	public PiPlugDeploymentState getDeploymentState() {
-		return new PiPlugDeploymentState(PiPlugDeploymentStatus.NEVER_DEPLOYED);
+	public DeploymentStatus getDeploymentStatus() {
+		return new DeploymentStatus(bundle.getDescriptor());
 	}
 
-	public PiPlugExtensionType getType() {
+	public ExtensionType getType() {
 		return type;
 	}
 }

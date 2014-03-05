@@ -4,9 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.ResourcesPlugin;
@@ -26,18 +25,18 @@ import org.osgi.framework.Version;
 
 import com.genuitec.piplug.client.BundleDescriptor;
 import com.genuitec.piplug.client.PiPlugClient;
-import com.genuitec.piplug.tools.model.PiPlugApplicationExtension;
 import com.genuitec.piplug.tools.model.PiPlugBundle;
 import com.genuitec.piplug.tools.model.PiPlugCore;
+import com.genuitec.piplug.tools.model.PiPlugExtension;
 import com.genuitec.piplug.tools.ui.Activator;
 
 @SuppressWarnings("restriction")
-public class PiPlugDeployOperation {
+public class DeployOperation {
 
-	private Set<PiPlugApplicationExtension> selectedApps;
+	private Set<PiPlugExtension> extensions;
 
-	public PiPlugDeployOperation(Set<PiPlugApplicationExtension> selectedApps) {
-		this.selectedApps = selectedApps;
+	public DeployOperation(Set<PiPlugExtension> extensions) {
+		this.extensions = extensions;
 	}
 
 	public void run() {
@@ -45,9 +44,9 @@ public class PiPlugDeployOperation {
 	}
 
 	private void buildPlugins() {
-		SortedSet<PiPlugBundle> sourceBundles = new TreeSet<PiPlugBundle>();
-		final SortedSet<PiPlugBundle> binaryBundles = new TreeSet<PiPlugBundle>();
-		bucketSelectedApps(sourceBundles, binaryBundles);
+		Set<PiPlugBundle> sourceBundles = new HashSet<PiPlugBundle>();
+		final Set<PiPlugBundle> binaryBundles = new HashSet<PiPlugBundle>();
+		bucketSelectedExtensions(sourceBundles, binaryBundles);
 		final FeatureExportInfo info;
 		try {
 			info = createExportInfo(sourceBundles);
@@ -83,7 +82,7 @@ public class PiPlugDeployOperation {
 	}
 
 	protected void deployBundles(FeatureExportInfo info,
-			SortedSet<PiPlugBundle> binaryBundles) {
+			Set<PiPlugBundle> binaryBundles) {
 		File exportDir = new File(info.destinationDirectory);
 		File pluginsDir = new File(exportDir, "plugins");
 
@@ -136,7 +135,7 @@ public class PiPlugDeployOperation {
 		}
 	}
 
-	private void deployBinaryBundles(SortedSet<PiPlugBundle> binaryBundles,
+	private void deployBinaryBundles(Set<PiPlugBundle> binaryBundles,
 			PiPlugClient client, MultiStatus status) {
 		// TODO Auto-generated method stub
 
@@ -156,7 +155,7 @@ public class PiPlugDeployOperation {
 					Version.parseVersion(version), null, null);
 			try {
 				client.uploadBundle(descriptor, file);
-				status.add(new Status(IStatus.INFO, Activator.PLUGIN_ID,
+				status.add(new Status(IStatus.OK, Activator.PLUGIN_ID,
 						"Deployed " + descriptor, null));
 			} catch (CoreException e) {
 				status.add(new Status(IStatus.ERROR, Activator.PLUGIN_ID,
@@ -165,9 +164,9 @@ public class PiPlugDeployOperation {
 		}
 	}
 
-	private void bucketSelectedApps(SortedSet<PiPlugBundle> sourceBundles,
-			SortedSet<PiPlugBundle> binaryBundles) {
-		for (PiPlugApplicationExtension app : selectedApps) {
+	private void bucketSelectedExtensions(Set<PiPlugBundle> sourceBundles,
+			Set<PiPlugBundle> binaryBundles) {
+		for (PiPlugExtension app : extensions) {
 			PiPlugBundle bundle = app.getBundle();
 			IProject project = bundle.getProject();
 			if (null == project) {
@@ -184,7 +183,7 @@ public class PiPlugDeployOperation {
 	}
 
 	private FeatureExportInfo createExportInfo(
-			SortedSet<PiPlugBundle> sourceBundles) throws IOException {
+			Set<PiPlugBundle> sourceBundles) throws IOException {
 		File exportDir = File.createTempFile("piplug-deploy-", ".d");
 		exportDir.delete();
 
@@ -204,9 +203,9 @@ public class PiPlugDeployOperation {
 		return info;
 	}
 
-	private Object[] toPluginModelArray(SortedSet<PiPlugBundle> bundles) {
+	private Object[] toPluginModelArray(Set<PiPlugBundle> sourceBundles) {
 		ArrayList<IPluginModelBase> result = new ArrayList<IPluginModelBase>();
-		for (PiPlugBundle bundle : bundles) {
+		for (PiPlugBundle bundle : sourceBundles) {
 			IPluginModelBase plugin = bundle.getPlugin();
 			if (null != plugin) {
 				result.add(plugin);

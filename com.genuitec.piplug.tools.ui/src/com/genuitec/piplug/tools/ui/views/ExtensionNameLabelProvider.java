@@ -12,40 +12,40 @@ import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Display;
 
-import com.genuitec.piplug.tools.model.PiPlugApplicationExtension;
+import com.genuitec.piplug.tools.model.PiPlugExtension;
 import com.genuitec.piplug.tools.ui.Activator;
 
-public class PiPlugAppColumnLabelProvider extends ColumnLabelProvider {
+public class ExtensionNameLabelProvider extends ColumnLabelProvider {
 
 	private ImageRegistry imageRegistry;
 
-	public PiPlugAppColumnLabelProvider(ImageRegistry imageRegistry) {
+	public ExtensionNameLabelProvider(ImageRegistry imageRegistry) {
 		this.imageRegistry = imageRegistry;
 	}
 
 	public String getText(Object obj) {
-		if (obj instanceof PiPlugApplicationExtension) {
-			PiPlugApplicationExtension app = (PiPlugApplicationExtension) obj;
-			return app.getName();
+		if (obj instanceof PiPlugExtension) {
+			PiPlugExtension extension = (PiPlugExtension) obj;
+			return extension.getName();
 		}
 		return getText(obj);
 	}
 
 	public Image getImage(Object obj) {
-		if (obj instanceof PiPlugApplicationExtension) {
-			PiPlugApplicationExtension app = (PiPlugApplicationExtension) obj;
-			String imageKey = getImageKey(app);
+		if (obj instanceof PiPlugExtension) {
+			PiPlugExtension extension = (PiPlugExtension) obj;
+			String imageKey = getImageKey(extension);
 			Image image = imageRegistry.get(imageKey);
 			if (null == image) {
-				image = loadImage(app, imageKey);
+				image = loadImage(extension, imageKey);
 			}
 			return image;
 		}
 		return null;
 	}
 
-	private Image loadImage(PiPlugApplicationExtension app, String imageKey) {
-		InputStream imageData = app.getImageData();
+	private Image loadImage(PiPlugExtension extension, String imageKey) {
+		InputStream imageData = extension.getImageData();
 		if (null == imageData)
 			return null;
 
@@ -59,7 +59,7 @@ public class PiPlugAppColumnLabelProvider extends ColumnLabelProvider {
 					.getDefault()
 					.getLog()
 					.log(new Status(IStatus.WARNING, Activator.PLUGIN_ID,
-							"Could not load " + app.getImage(), e));
+							"Could not load " + extension.getImage(), e));
 			return null;
 		} finally {
 			try {
@@ -74,8 +74,8 @@ public class PiPlugAppColumnLabelProvider extends ColumnLabelProvider {
 		}
 	}
 
-	private String getImageKey(PiPlugApplicationExtension app) {
-		return app.getBundle().getBundleId() + "/" + app.getImage();
+	private String getImageKey(PiPlugExtension extension) {
+		return extension.getBundle().getDescriptor().getBundleID() + "/" + extension.getImage();
 	}
 
 	private Image resize(Image image, int width, int height) {
@@ -86,7 +86,7 @@ public class PiPlugAppColumnLabelProvider extends ColumnLabelProvider {
 		gc.drawImage(image, 0, 0, image.getBounds().width,
 				image.getBounds().height, 0, 0, width, height);
 		gc.dispose();
-		image.dispose(); // don't forget about me!
+		image.dispose();
 		return scaled;
 	}
 }

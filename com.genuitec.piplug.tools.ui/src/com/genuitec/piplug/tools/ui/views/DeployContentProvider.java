@@ -9,20 +9,20 @@ import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 
-import com.genuitec.piplug.tools.model.IPiPlugApplicationListener;
-import com.genuitec.piplug.tools.model.PiPlugApplicationExtension;
+import com.genuitec.piplug.tools.model.IPiPlugBundleListener;
+import com.genuitec.piplug.tools.model.PiPlugExtension;
 import com.genuitec.piplug.tools.model.PiPlugBundle;
 import com.genuitec.piplug.tools.model.PiPlugCore;
 
-public class PiPlugAppsViewContentProvider implements IStructuredContentProvider,
-		IPiPlugApplicationListener {
+public class DeployContentProvider implements IStructuredContentProvider,
+		IPiPlugBundleListener {
 
 	public static class RefreshRunnable implements Runnable {
 
 		private Viewer viewer;
-		private PiPlugAppsView view;
+		private DeployView view;
 
-		public RefreshRunnable(Viewer viewer, PiPlugAppsView view) {
+		public RefreshRunnable(Viewer viewer, DeployView view) {
 			this.viewer = viewer;
 			this.view = view;
 		}
@@ -37,9 +37,9 @@ public class PiPlugAppsViewContentProvider implements IStructuredContentProvider
 
 	private Viewer viewer;
 	
-	private PiPlugAppsView view;
+	private DeployView view;
 	
-	public PiPlugAppsViewContentProvider(PiPlugAppsView view) {
+	public DeployContentProvider(DeployView view) {
 		this.view = view;
 	}
 
@@ -53,16 +53,16 @@ public class PiPlugAppsViewContentProvider implements IStructuredContentProvider
 	}
 
 	public Object[] getElements(Object parent) {
-		Set<PiPlugBundle> bundles = PiPlugCore.getInstance().getBundles();
+		Set<PiPlugBundle> bundles = PiPlugCore.getInstance().getLocalBundles();
 		if (null == bundles)
 			return new Object[0];
-		SortedSet<PiPlugApplicationExtension> applications = new TreeSet<PiPlugApplicationExtension>();
+		SortedSet<PiPlugExtension> extensions = new TreeSet<PiPlugExtension>();
 		for (PiPlugBundle bundle : bundles) {
-			SortedSet<PiPlugApplicationExtension> apps = bundle.getApps();
-			if (null != apps)
-				applications.addAll(apps);
+			SortedSet<PiPlugExtension> bundleExtensions = bundle.getExtensions();
+			if (null != extensions)
+				extensions.addAll(bundleExtensions);
 		}
-		return applications.toArray();
+		return extensions.toArray();
 	}
 
 	private void refreshViewer() {
@@ -72,7 +72,7 @@ public class PiPlugAppsViewContentProvider implements IStructuredContentProvider
 		Display display = control.getDisplay();
 		if (null == display || display.isDisposed())
 			return;
-		display.asyncExec(new PiPlugAppsViewContentProvider.RefreshRunnable(viewer, view));
+		display.asyncExec(new DeployContentProvider.RefreshRunnable(viewer, view));
 	}
 	
 	@Override

@@ -7,10 +7,10 @@ import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.ui.IWorkbenchPartSite;
 import org.eclipse.ui.actions.SelectionListenerAction;
 
-import com.genuitec.piplug.tools.model.PiPlugApplicationExtension;
+import com.genuitec.piplug.tools.model.PiPlugExtension;
 
-public class PiPlugSelectionListenerAction extends SelectionListenerAction {
-	public PiPlugSelectionListenerAction(String label, IWorkbenchPartSite site) {
+public class ExtensionSelectionListenerAction extends SelectionListenerAction {
+	public ExtensionSelectionListenerAction(String label, IWorkbenchPartSite site) {
 		super(label);
 		site.getSelectionProvider().addSelectionChangedListener(this);
 		selectionChanged((IStructuredSelection) site.getSelectionProvider().getSelection());
@@ -21,14 +21,14 @@ public class PiPlugSelectionListenerAction extends SelectionListenerAction {
 		return !selection.isEmpty();
 	}
 	
-	protected Set<PiPlugApplicationExtension> getSelectedApps() {
-		Set<PiPlugApplicationExtension> apps = new HashSet<PiPlugApplicationExtension>();
+	protected Set<PiPlugExtension> getSelectedExtensions() {
+		Set<PiPlugExtension> extensions = new HashSet<PiPlugExtension>();
 		for(Object object : getSelectedNonResources()) {
-			if (object instanceof PiPlugApplicationExtension) {
-				apps.add((PiPlugApplicationExtension) object);
+			if (object instanceof PiPlugExtension) {
+				extensions.add((PiPlugExtension) object);
 			}
 		}
-		return apps;
+		return extensions;
 	}
 
 }

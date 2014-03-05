@@ -12,11 +12,13 @@ import org.eclipse.pde.core.plugin.IPluginModelBase;
 import org.eclipse.pde.internal.core.PDECore;
 import org.eclipse.pde.internal.core.PluginModelManager;
 
+import com.genuitec.piplug.client.BundleDescriptor;
+
 @SuppressWarnings("restriction")
-public class PiPlugBundle implements Comparable<PiPlugBundle> {
-	private Set<PiPlugApplicationExtension> apps = new HashSet<PiPlugApplicationExtension>();
+public class PiPlugBundle {
+	private Set<PiPlugExtension> extensions = new HashSet<PiPlugExtension>();
 	private IProject project;
-	private PiPlugBundleIdentity identity;
+	private BundleDescriptor descriptor;
 	private File artifact;
 	private IPluginModelBase plugin;
 
@@ -31,42 +33,33 @@ public class PiPlugBundle implements Comparable<PiPlugBundle> {
 		IResource resource = plugin.getUnderlyingResource();
 		if (null != resource)
 			this.project = resource.getProject();
-		this.identity = PiPlugBundleIdentity.fromPluginModelBase(plugin);
+		this.descriptor = PiPlugCore.fromPluginModelBase(plugin);
 	}
 
-	public String getBundleId() {
-		return identity.getId();
+	public SortedSet<PiPlugExtension> getExtensions() {
+		return new TreeSet<PiPlugExtension>(extensions);
 	}
 
-	public SortedSet<PiPlugApplicationExtension> getApps() {
-		return new TreeSet<PiPlugApplicationExtension>(apps);
-	}
-
-	public void addApplication(PiPlugApplicationExtension app) {
-		apps.add(app);
-		app.bind(this);
+	public void addExtension(PiPlugExtension extension) {
+		extensions.add(extension);
+		extension.bind(this);
 	}
 
 	public IProject getProject() {
 		return project;
 	}
 
-	public PiPlugBundleIdentity getIdentity() {
-		return identity;
+	public BundleDescriptor getDescriptor() {
+		return descriptor;
 	}
 
-	public void setApplications(Set<PiPlugApplicationExtension> bundleApps) {
+	public void setApplications(Set<PiPlugExtension> bundleApps) {
 		if (null == bundleApps)
-			bundleApps = new HashSet<PiPlugApplicationExtension>();
-		this.apps = bundleApps;
-		for (PiPlugApplicationExtension app : bundleApps) {
+			bundleApps = new HashSet<PiPlugExtension>();
+		this.extensions = bundleApps;
+		for (PiPlugExtension app : bundleApps) {
 			app.bind(this);
 		}
-	}
-
-	@Override
-	public int compareTo(PiPlugBundle o) {
-		return identity.compareTo(o.identity);
 	}
 
 	public File getArtifact() {
@@ -75,5 +68,9 @@ public class PiPlugBundle implements Comparable<PiPlugBundle> {
 
 	public IPluginModelBase getPlugin() {
 		return plugin;
+	}
+
+	public void setDescriptor(BundleDescriptor descriptor) {
+		this.descriptor = descriptor;
 	}
 }
