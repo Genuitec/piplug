@@ -1,5 +1,6 @@
 package com.genuitec.piplug.tools.model;
 
+import java.io.File;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.SortedSet;
@@ -12,17 +13,17 @@ import org.eclipse.pde.internal.core.PDECore;
 import org.eclipse.pde.internal.core.PluginModelManager;
 
 @SuppressWarnings("restriction")
-public class PiPlugBundle {
+public class PiPlugBundle implements Comparable<PiPlugBundle> {
 	private Set<PiPlugApplicationExtension> apps = new HashSet<PiPlugApplicationExtension>();
-	private final String bundleId;
 	private IProject project;
 	private PiPlugBundleIdentity identity;
+	private File artifact;
+	private IPluginModelBase plugin;
 
 	public PiPlugBundle(String bundleId) {
-		this.bundleId = bundleId;
 		PluginModelManager modelManager = PDECore.getDefault()
 				.getModelManager();
-		IPluginModelBase plugin = modelManager.findModel(bundleId);
+		plugin = modelManager.findModel(bundleId);
 		if (null == plugin)
 			throw new IllegalStateException("Could not locate resource for "
 					+ bundleId);
@@ -34,7 +35,7 @@ public class PiPlugBundle {
 	}
 
 	public String getBundleId() {
-		return bundleId;
+		return identity.getId();
 	}
 
 	public SortedSet<PiPlugApplicationExtension> getApps() {
@@ -61,5 +62,18 @@ public class PiPlugBundle {
 		for (PiPlugApplicationExtension app : bundleApps) {
 			app.bind(this);
 		}
+	}
+
+	@Override
+	public int compareTo(PiPlugBundle o) {
+		return identity.compareTo(o.identity);
+	}
+
+	public File getArtifact() {
+		return artifact;
+	}
+
+	public IPluginModelBase getPlugin() {
+		return plugin;
 	}
 }

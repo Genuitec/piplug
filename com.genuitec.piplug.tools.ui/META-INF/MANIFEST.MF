@@ -8,6 +8,8 @@ Bundle-Vendor: Genuitec, LLC
 Require-Bundle: org.eclipse.ui,
  org.eclipse.core.runtime,
  org.eclipse.core.resources,
- org.eclipse.pde.core
+ org.eclipse.pde.core,
+ org.eclipse.ui.ide,
+ com.genuitec.piplug.client
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Bundle-ActivationPolicy: lazy

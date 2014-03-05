@@ -22,10 +22,12 @@ public class PiPlugApplicationExtension implements Comparable<PiPlugApplicationE
 	private String image;
 	private String name;
 	private PiPlugBundle bundle;
+	private PiPlugExtensionType type;
 
-	public PiPlugApplicationExtension(String appName, String image) {
+	public PiPlugApplicationExtension(String appName, String image, PiPlugExtensionType type) {
 		this.name = appName;
 		this.image = image;
+		this.type = type;
 	}
 	
 	public void bind(PiPlugBundle bundle) {
@@ -87,5 +89,9 @@ public class PiPlugApplicationExtension implements Comparable<PiPlugApplicationE
 
 	public PiPlugDeploymentState getDeploymentState() {
 		return new PiPlugDeploymentState(PiPlugDeploymentStatus.NEVER_DEPLOYED);
+	}
+
+	public PiPlugExtensionType getType() {
+		return type;
 	}
 }

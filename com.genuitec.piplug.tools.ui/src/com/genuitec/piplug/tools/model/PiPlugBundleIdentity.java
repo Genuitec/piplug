@@ -4,7 +4,7 @@ import org.eclipse.osgi.service.resolver.BundleDescription;
 import org.eclipse.pde.core.plugin.IPluginModelBase;
 import org.osgi.framework.Version;
 
-public class PiPlugBundleIdentity {
+public class PiPlugBundleIdentity implements Comparable<PiPlugBundleIdentity> {
 	private final String id;
 	private final Version version;
 
@@ -45,5 +45,13 @@ public class PiPlugBundleIdentity {
 	public static PiPlugBundleIdentity fromPluginModelBase(IPluginModelBase plugin) {
 		BundleDescription bundleDescription = plugin.getBundleDescription();
 		return new PiPlugBundleIdentity(bundleDescription.getName(), bundleDescription.getVersion());
+	}
+
+	@Override
+	public int compareTo(PiPlugBundleIdentity o) {
+		int compare = id.compareTo(o.id);
+		if (0 != compare)
+			return compare;
+		return version.compareTo(o.version);
 	}
 }

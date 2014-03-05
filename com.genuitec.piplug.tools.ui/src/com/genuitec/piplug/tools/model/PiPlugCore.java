@@ -1,5 +1,6 @@
 package com.genuitec.piplug.tools.model;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -47,8 +48,6 @@ public class PiPlugCore {
 		}
 	}
 
-	private static final String PIPLUG_APP_EXTENSION_POINT = "com.genuitec.piplug.api.app";
-	private static final String PIPLUG_SERVICE_EXTENSION_POINT = "com.genuitec.piplug.api.service";
 	private static final PiPlugCore instance = new PiPlugCore();
 	private Map<PiPlugBundleIdentity, PiPlugBundle> bundles = new HashMap<PiPlugBundleIdentity, PiPlugBundle>();
 	private Set<IPiPlugApplicationListener> listeners = new HashSet<IPiPlugApplicationListener>();
@@ -75,7 +74,7 @@ public class PiPlugCore {
 			PiPlugBundle bundle = createPiPlugBundle(plugin);
 			if (null == bundle)
 				continue;
-			
+
 			bundles.put(PiPlugBundleIdentity.fromPluginModelBase(plugin),
 					bundle);
 			fireBundleChanged(bundle, listenerFlag);
@@ -93,11 +92,15 @@ public class PiPlugCore {
 		IPluginExtension[] extensions = pluginExtensions.getExtensions();
 		if (null != extensions && extensions.length > 0) {
 			for (IPluginExtension extension : extensions) {
-				bundleApps.addAll(getAppExtensions(extension));
+				for (PiPlugExtensionType extensionType : PiPlugExtensionType.values()) {
+					if (extensionType.getExtensionPointId().equals(extension.getPoint())) {
+						bundleApps.addAll(getExtensions(extension, extensionType));						
+					}
+				}
 			}
 		}
-		PiPlugBundle bundle = new PiPlugBundle(plugin
-				.getBundleDescription().getName());
+		PiPlugBundle bundle = new PiPlugBundle(plugin.getBundleDescription()
+				.getName());
 		bundle.setApplications(bundleApps);
 		return bundle;
 	}
@@ -121,14 +124,15 @@ public class PiPlugCore {
 		}
 	}
 
-	private Set<PiPlugApplicationExtension> getAppExtensions(
-			IPluginExtension extension) {
+	private Set<PiPlugApplicationExtension> getExtensions(
+			IPluginExtension extension, PiPlugExtensionType extensionType) {
 		IPluginObject[] children = extension.getChildren();
 		HashSet<PiPlugApplicationExtension> appExtensions = new HashSet<PiPlugApplicationExtension>();
 		if (null == children || children.length == 0)
 			return appExtensions;
 
 		// We're matching
+		//
 		// <extension
 		// point="com.genuitec.piplug.api.app">
 		// <piplug-app
@@ -137,19 +141,26 @@ public class PiPlugCore {
 		// name="Snake">
 		// </piplug-app>
 		// </extension>
+		//
+		// or
+		//
+		// <extension
+		// point="com.genuitec.piplug.api.service">
+		// <piplug-service
+		// name="Infocom Emulator Service">
+		// </piplug-service>
+		// </extension>
 
 		for (IPluginObject pluginObject : children) {
 			if (pluginObject instanceof IPluginElement) {
 				IPluginElement element = (IPluginElement) pluginObject;
 				IPluginAttribute nameAttribute = element.getAttribute("name");
-				String name = nameAttribute == null ? "Error: app name required in extension" : nameAttribute.getValue();
+				String name = nameAttribute == null ? "Error: app name required in extension"
+						: nameAttribute.getValue();
 				IPluginAttribute imageAttribute = element.getAttribute("image");
-				if (imageAttribute == null) {
-					// old-school
-					imageAttribute = element.getAttribute("img64");
-				}
-				String image = imageAttribute == null ? null : imageAttribute.getValue();
-				appExtensions.add(new PiPlugApplicationExtension(name, image));
+				String image = imageAttribute == null ? null : imageAttribute
+						.getValue();
+				appExtensions.add(new PiPlugApplicationExtension(name, image, extensionType));
 			}
 		}
 
@@ -162,33 +173,38 @@ public class PiPlugCore {
 
 	private void initialize() {
 		bundles = new HashMap<PiPlugBundleIdentity, PiPlugBundle>();
-		PDEExtensionRegistry extensionsRegistry = PDECore.getDefault()
-				.getExtensionsRegistry();
 
 		// First, register a listener for future changes
 		PDECore.getDefault().getModelManager()
 				.addExtensionDeltaListener(new ExtensionDeltaListener());
 
 		// Second, read the existing extensions
-		loadExtensions(PIPLUG_APP_EXTENSION_POINT, extensionsRegistry);
-		loadExtensions(PIPLUG_SERVICE_EXTENSION_POINT, extensionsRegistry);
+		loadExtensions();
 	}
 
-	private void loadExtensions(String extensionPointId,
-			PDEExtensionRegistry extensionsRegistry) {
-		IPluginModelBase[] appPlugins = extensionsRegistry.findExtensionPlugins(
-				extensionPointId, true);
-		if (null != appPlugins) {
-			for (IPluginModelBase plugin : appPlugins) {
-				PiPlugBundle bundle = createPiPlugBundle(plugin);
-				if (null == bundle)
-					continue;
+	private void loadExtensions() {
+		PDEExtensionRegistry extensionsRegistry = PDECore.getDefault()
+				.getExtensionsRegistry();
 
-				bundles.put(bundle.getIdentity(), bundle);
+		// Find all plugins that have extensions of our extension points
+		Set<IPluginModelBase> pluginModels = new HashSet<IPluginModelBase>();
+		for (PiPlugExtensionType extensionType : PiPlugExtensionType.values()) {
+			IPluginModelBase[] plugins = extensionsRegistry
+					.findExtensionPlugins(extensionType.getExtensionPointId(),
+							true);
+			if (null != plugins) {
+				pluginModels.addAll(Arrays.asList(plugins));
 			}
 		}
-	}
 
+		for (IPluginModelBase plugin : pluginModels) {
+			PiPlugBundle bundle = createPiPlugBundle(plugin);
+			if (null == bundle)
+				continue;
+
+			bundles.put(bundle.getIdentity(), bundle);
+		}
+	}
 
 	public Set<PiPlugBundle> getBundles() {
 		return new HashSet<PiPlugBundle>(bundles.values());
