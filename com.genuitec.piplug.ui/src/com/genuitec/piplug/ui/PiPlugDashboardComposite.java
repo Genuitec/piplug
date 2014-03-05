@@ -19,6 +19,8 @@ public class PiPlugDashboardComposite extends Composite {
     private final class CloseShellListener extends MouseAdapter {
 	@Override
 	public void mouseDown(MouseEvent e) {
+	    getShell().setVisible(false);
+	    container.cleanup();
 	    getShell().dispose();
 	}
     }
