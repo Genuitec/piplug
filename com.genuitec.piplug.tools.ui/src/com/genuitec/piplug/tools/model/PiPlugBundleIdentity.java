@@ -1,6 +1,7 @@
 package com.genuitec.piplug.tools.model;
 
 import org.eclipse.osgi.service.resolver.BundleDescription;
+import org.eclipse.pde.core.plugin.IPluginBase;
 import org.eclipse.pde.core.plugin.IPluginModelBase;
 import org.osgi.framework.Version;
 
@@ -42,6 +43,10 @@ public class PiPlugBundleIdentity implements Comparable<PiPlugBundleIdentity> {
 		return id.hashCode() + version.hashCode() * 3;
 	}
 
+	public static PiPlugBundleIdentity fromPluginModelBase(IPluginBase plugin) {
+		return new PiPlugBundleIdentity(plugin.getId(), Version.parseVersion(plugin.getVersion()));
+	}
+	
 	public static PiPlugBundleIdentity fromPluginModelBase(IPluginModelBase plugin) {
 		BundleDescription bundleDescription = plugin.getBundleDescription();
 		return new PiPlugBundleIdentity(bundleDescription.getName(), bundleDescription.getVersion());
