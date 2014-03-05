@@ -17,6 +17,7 @@ import java.util.List;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
+import javax.xml.bind.Unmarshaller;
 
 import org.osgi.framework.Version;
 
@@ -44,6 +45,7 @@ public class PiPlugDaemon extends AbstractFileWebServer {
 	    throw new IllegalStateException(
 		    "Unable to prepare JAXB context for serialization");
 	}
+	loadBundlesList();
     }
 
     public static void main(String[] args) throws IOException {
@@ -217,6 +219,7 @@ public class PiPlugDaemon extends AbstractFileWebServer {
 	    if (existingDescriptor != null)
 		descriptors.remove(existingDescriptor);
 	    descriptors.add(newDescriptor);
+	    saveBundlesList();
 	}
 
 	if (existingDescriptor != null)
@@ -244,6 +247,7 @@ public class PiPlugDaemon extends AbstractFileWebServer {
 		    break;
 		}
 	    }
+	    saveBundlesList();
 	}
 	if (match) {
 	    File toDelete = getPathTo(toMatch);
@@ -252,6 +256,35 @@ public class PiPlugDaemon extends AbstractFileWebServer {
 	    return new Response(Status.OK, "text/ascii", "removed-bundle");
 	}
 	return new Response(Status.NOT_FOUND, "text/ascii", "bundle-not-found");
+    }
+
+    private void loadBundlesList() {
+	File bundlesFile = getBundlesListFile();
+	if (bundlesFile.exists()) {
+	    try {
+		Unmarshaller unmarshaller = jaxb.createUnmarshaller();
+		BundleDescriptors persistDescriptors = (BundleDescriptors) unmarshaller
+			.unmarshal(bundlesFile);
+		descriptors = persistDescriptors.getDescriptors();
+	    } catch (Exception e) {
+		e.printStackTrace();
+	    }
+	}
+    }
+
+    private void saveBundlesList() {
+	try {
+	    Marshaller marshaller = jaxb.createMarshaller();
+	    BundleDescriptors persistDescriptors = new BundleDescriptors();
+	    persistDescriptors.setDescriptors(descriptors);
+	    marshaller.marshal(persistDescriptors, getBundlesListFile());
+	} catch (Exception e) {
+	    e.printStackTrace();
+	}
+    }
+
+    private File getBundlesListFile() {
+	return new File(storageLocation, "bundles.xml");
     }
 
     private File getPathTo(BundleDescriptor desc) {
