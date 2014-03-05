@@ -1,9 +1,27 @@
 package com.genuitec.piplug.daemon;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.StringWriter;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
+
+import org.osgi.framework.Version;
+
+import com.genuitec.piplug.common.BundleDescriptor;
+import com.genuitec.piplug.common.BundleDescriptors;
 
 import fi.iki.elonen.AbstractFileWebServer;
 import fi.iki.elonen.NanoHTTPD.Response.Status;
@@ -13,9 +31,19 @@ public class PiPlugDaemon extends AbstractFileWebServer {
     public static final int DAEMON_PORT = 4392;
 
     private DatagramSocket datagramSocket;
+    private List<BundleDescriptor> descriptors = new ArrayList<BundleDescriptor>();
+    private JAXBContext jaxb;
+    private File storageLocation;
 
     public PiPlugDaemon(File storageLocation, boolean debug) {
 	super(null, DAEMON_PORT, !debug); // null = bound to all interfaces
+	this.storageLocation = storageLocation;
+	try {
+	    jaxb = JAXBContext.newInstance(BundleDescriptors.class);
+	} catch (Exception e) {
+	    throw new IllegalStateException(
+		    "Unable to prepare JAXB context for serialization");
+	}
     }
 
     public static void main(String[] args) throws IOException {
@@ -63,12 +91,182 @@ public class PiPlugDaemon extends AbstractFileWebServer {
 
     @Override
     protected Response handle(IHTTPSession session) {
-	if (session.getUri().equals("/connect"))
-	    return new Response(Status.OK, "text/ascii", "connection-alive");
-	if (session.getUri().startsWith("/plugin/")) {
+	try {
+	    String uri = session.getUri();
+	    if (uri.equals("/connect"))
+		return new Response(Status.OK, "text/ascii", "connection-alive");
+	    if (uri.equals("/list-bundles"))
+		return listBundles();
+	    if (uri.equals("/remove-bundle"))
+		return removeBundle(session);
+	    if (uri.equals("/put-bundle"))
+		return putBundle(session);
+	    if (uri.equals("/get-bundle"))
+		return getBundle(session);
 
+	    // File Not Found
+	    return null;
+	} catch (Exception e) {
+	    e.printStackTrace();
+	    return new Response(Status.INTERNAL_ERROR, "text/ascii",
+		    "Could not process or handle request");
 	}
-	// TODO Auto-generated method stub
-	return null;
+    }
+
+    private Response getBundle(IHTTPSession session) {
+	BundleDescriptor toMatch = new BundleDescriptor();
+	toMatch.setBundleID(session.getHeaders().get("bundle-id"));
+	toMatch.setVersion(Version.parseVersion(session.getHeaders().get(
+		"bundle-version")));
+	if (toMatch.getBundleID() == null || toMatch.getVersion() == null) {
+	    return new Response(Status.BAD_REQUEST, "text/ascii",
+		    "Missing bundle headers");
+	}
+
+	BundleDescriptor match = null;
+	synchronized (descriptors) {
+	    for (BundleDescriptor next : descriptors) {
+		if (next.matchesIDVersion(toMatch)) {
+		    match = next;
+		    break;
+		}
+	    }
+	}
+	if (match != null) {
+	    File toReturn = getPathTo(match);
+	    if (!toReturn.isFile())
+		return new Response(Status.NOT_FOUND, "text/ascii",
+			"bundle-file-not-found");
+	    InputStream in;
+	    try {
+		in = new FileInputStream(toReturn);
+	    } catch (IOException ioe) {
+		return new Response(Status.NOT_FOUND, "text/ascii",
+			"bundle-file-not-openable");
+	    }
+	    in = new BufferedInputStream(in, 1024 * 1024);
+	    return new Response(Status.OK, "application/octet-stream", in);
+	}
+	return new Response(Status.NOT_FOUND, "text/ascii", "bundle-not-found");
+    }
+
+    private Response putBundle(IHTTPSession session) {
+	BundleDescriptor newDescriptor = new BundleDescriptor();
+	newDescriptor.setBundleID(session.getHeaders().get("bundle-id"));
+	newDescriptor.setVersion(Version.parseVersion(session.getHeaders().get(
+		"bundle-version")));
+	if (newDescriptor.getBundleID() == null
+		|| newDescriptor.getVersion() == null) {
+	    return new Response(Status.BAD_REQUEST, "text/ascii",
+		    "Missing bundle headers");
+	}
+
+	BundleDescriptor existingDescriptor = null;
+	synchronized (descriptors) {
+	    for (BundleDescriptor next : descriptors) {
+		if (next.matchesIDVersion(newDescriptor)) {
+		    existingDescriptor = next;
+		    break;
+		}
+	    }
+	}
+	newDescriptor.setLastUpdatedOn(new Date());
+	if (existingDescriptor != null)
+	    newDescriptor.setFirstAdded(existingDescriptor.getFirstAdded());
+	else
+	    newDescriptor.setFirstAdded(newDescriptor.getLastUpdatedOn());
+
+	InputStream in = session.getInputStream();
+	File targetFile = getPathTo(newDescriptor);
+	File newFile = new File(targetFile.getParentFile(),
+		targetFile.getName() + ".new");
+	storageLocation.mkdirs();
+	int contentLength = Integer.parseInt(session.getHeaders().get(
+		"content-length"));
+	boolean cleanup = true;
+	try {
+	    OutputStream out = new FileOutputStream(newFile);
+	    try {
+		byte buffer[] = new byte[1024 * 1024];
+		int numread;
+		int remaining = contentLength;
+		while ((remaining > 0) && (0 <= (numread = in.read(buffer)))) {
+		    out.write(buffer, 0, numread);
+		    remaining -= numread;
+		}
+		cleanup = false;
+	    } finally {
+		out.close();
+		if (cleanup)
+		    newFile.delete();
+	    }
+	} catch (IOException ioe) {
+	    ioe.printStackTrace();
+	    return new Response(Status.INTERNAL_ERROR, "text/ascii",
+		    "Unable to receive file");
+	}
+	if (newFile.length() != contentLength) {
+	    newFile.delete();
+	    return new Response(Status.BAD_REQUEST, "text/ascii",
+		    "Wrong number of bytes received");
+	}
+	targetFile.delete();
+	newFile.renameTo(targetFile);
+
+	synchronized (descriptors) {
+	    if (existingDescriptor != null)
+		descriptors.remove(existingDescriptor);
+	    descriptors.add(newDescriptor);
+	}
+
+	if (existingDescriptor != null)
+	    getPathTo(existingDescriptor).delete();
+
+	return new Response(Status.OK, "text/ascii", "uploaded-bundle");
+    }
+
+    private Response removeBundle(IHTTPSession session) {
+	BundleDescriptor toMatch = new BundleDescriptor();
+	toMatch.setBundleID(session.getHeaders().get("bundle-id"));
+	toMatch.setVersion(Version.parseVersion(session.getHeaders().get(
+		"bundle-version")));
+	if (toMatch.getBundleID() == null || toMatch.getVersion() == null) {
+	    return new Response(Status.BAD_REQUEST, "text/ascii",
+		    "Missing bundle headers");
+	}
+
+	boolean match = false;
+	synchronized (descriptors) {
+	    for (BundleDescriptor next : descriptors) {
+		if (next.matchesIDVersion(toMatch)) {
+		    descriptors.remove(next);
+		    match = true;
+		    break;
+		}
+	    }
+	}
+	if (match) {
+	    File toDelete = getPathTo(toMatch);
+	    if (!toDelete.delete())
+		toDelete.deleteOnExit();
+	    return new Response(Status.OK, "text/ascii", "removed-bundle");
+	}
+	return new Response(Status.NOT_FOUND, "text/ascii", "bundle-not-found");
+    }
+
+    private File getPathTo(BundleDescriptor desc) {
+	return new File(storageLocation, desc.getBundleID() + "_"
+		+ desc.getVersion() + ".jar");
+    }
+
+    private Response listBundles() throws JAXBException {
+	Marshaller marshaller = jaxb.createMarshaller();
+	BundleDescriptors response = new BundleDescriptors();
+	synchronized (descriptors) {
+	    response.setDescriptors(new ArrayList<BundleDescriptor>(descriptors));
+	}
+	StringWriter sw = new StringWriter();
+	marshaller.marshal(response, sw);
+	return new Response(Status.OK, "text/xml", sw.toString());
     }
 }

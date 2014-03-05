@@ -34,7 +34,7 @@ public class PiPlugClient {
 
     public PiPlugClient() {
 	try {
-	    jaxb = JAXBContext.newInstance(BundleDescriptor.class);
+	    jaxb = JAXBContext.newInstance(BundleDescriptors.class);
 	} catch (Exception e) {
 	    throw new IllegalStateException(
 		    "Unable to prepare JAXB context for serialization");
@@ -155,6 +155,7 @@ public class PiPlugClient {
 		conn.setRequestProperty("Content-Length",
 			String.valueOf(sourceFile.length()));
 		conn.setRequestMethod("PUT");
+		conn.setDoOutput(true);
 		conn.connect();
 		OutputStream out = conn.getOutputStream();
 		byte buffer[] = new byte[1024 * 1024];

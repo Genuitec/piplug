@@ -7,7 +7,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.net.InetSocketAddress;
 import java.net.URL;
-import java.util.Date;
 import java.util.List;
 
 import org.eclipse.core.runtime.CoreException;
@@ -92,7 +91,7 @@ public class PiPlugClientTests {
 	try {
 
 	    List<BundleDescriptor> listBundles = client.listBundles();
-	    assertNotNull("bundles listing", listBundles);
+	    assertNotNull("bundles listing is null", listBundles);
 	    assertEquals("no bundles on start", 0, listBundles.size());
 
 	    Bundle bundle = Platform
@@ -111,13 +110,11 @@ public class PiPlugClientTests {
 	    newDescriptor = new BundleDescriptor();
 	    newDescriptor.setBundleID(testBundleID);
 	    newDescriptor.setVersion(Version.parseVersion(testBundleVersion));
-	    newDescriptor.setFirstAdded(new Date());
-	    newDescriptor.setLastUpdatedOn(newDescriptor.getFirstAdded());
 
 	    client.uploadBundle(newDescriptor, sourceFile);
 
 	    listBundles = client.listBundles();
-	    assertNotNull("bundles listing", listBundles);
+	    assertNotNull("bundles listing is null", listBundles);
 	    assertEquals("bundle exists after upload", 1, listBundles.size());
 
 	    try {
@@ -130,6 +127,10 @@ public class PiPlugClientTests {
 		    }
 		}
 		assertNotNull("found match for descriptor", matchedDescriptor);
+		assertNotNull("last updated not set",
+			matchedDescriptor.getLastUpdatedOn());
+		assertNotNull("first added not set",
+			matchedDescriptor.getFirstAdded());
 
 		File tempFile = File.createTempFile(testBundleID, ".tmp");
 		tempFile.deleteOnExit();
@@ -160,7 +161,7 @@ public class PiPlugClientTests {
 
 	    listBundles = client.listBundles();
 	    assertNotNull("bundles listing", listBundles);
-	    assertEquals("bundle exists after upload", 1, listBundles.size());
+	    assertEquals("bundle removed after removal", 0, listBundles.size());
 
 	} finally {
 	    client.disconnect();
