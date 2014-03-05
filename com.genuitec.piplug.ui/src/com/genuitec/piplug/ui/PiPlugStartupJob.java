@@ -25,9 +25,9 @@ import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 
 import com.genuitec.piplug.api.IPiPlugApplication;
+import com.genuitec.piplug.client.BundleDescriptor;
+import com.genuitec.piplug.client.BundleDescriptors;
 import com.genuitec.piplug.client.PiPlugClient;
-import com.genuitec.piplug.common.BundleDescriptor;
-import com.genuitec.piplug.common.BundleDescriptors;
 
 public class PiPlugStartupJob extends Job {
 

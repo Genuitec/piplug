@@ -23,8 +23,6 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 
 import com.genuitec.piplug.client.internal.DiscoverDaemonService;
-import com.genuitec.piplug.common.BundleDescriptor;
-import com.genuitec.piplug.common.BundleDescriptors;
 
 public class PiPlugClient {
 

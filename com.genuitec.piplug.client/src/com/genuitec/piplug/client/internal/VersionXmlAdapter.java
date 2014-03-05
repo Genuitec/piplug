@@ -1,4 +1,4 @@
-package com.genuitec.piplug.common;
+package com.genuitec.piplug.client.internal;
 
 import javax.xml.bind.annotation.adapters.XmlAdapter;
 

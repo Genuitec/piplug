@@ -1,9 +1,0 @@
-Manifest-Version: 1.0
-Bundle-ManifestVersion: 2
-Bundle-Name: Common Model for Webservices
-Bundle-SymbolicName: com.genuitec.piplug.common
-Bundle-Version: 1.0.0.qualifier
-Bundle-Vendor: Genuitec, LLC
-Bundle-RequiredExecutionEnvironment: JavaSE-1.6
-Export-Package: com.genuitec.piplug.common
-Require-Bundle: org.eclipse.core.runtime

@@ -1,4 +1,4 @@
-package com.genuitec.piplug.common;
+package com.genuitec.piplug.client;
 
 import java.util.Date;
 
@@ -6,6 +6,8 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 import org.osgi.framework.Version;
+
+import com.genuitec.piplug.client.internal.VersionXmlAdapter;
 
 @XmlRootElement(name = "descriptor")
 public class BundleDescriptor {

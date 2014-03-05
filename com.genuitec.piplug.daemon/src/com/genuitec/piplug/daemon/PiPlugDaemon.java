@@ -19,8 +19,6 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 
-import org.osgi.framework.Version;
-
 import com.genuitec.piplug.common.BundleDescriptor;
 import com.genuitec.piplug.common.BundleDescriptors;
 
@@ -118,8 +116,7 @@ public class PiPlugDaemon extends AbstractFileWebServer {
     private Response getBundle(IHTTPSession session) {
 	BundleDescriptor toMatch = new BundleDescriptor();
 	toMatch.setBundleID(session.getHeaders().get("bundle-id"));
-	toMatch.setVersion(Version.parseVersion(session.getHeaders().get(
-		"bundle-version")));
+	toMatch.setVersion(session.getHeaders().get("bundle-version"));
 	if (toMatch.getBundleID() == null || toMatch.getVersion() == null) {
 	    return new Response(Status.BAD_REQUEST, "text/ascii",
 		    "Missing bundle headers");
@@ -155,8 +152,7 @@ public class PiPlugDaemon extends AbstractFileWebServer {
     private Response putBundle(IHTTPSession session) {
 	BundleDescriptor newDescriptor = new BundleDescriptor();
 	newDescriptor.setBundleID(session.getHeaders().get("bundle-id"));
-	newDescriptor.setVersion(Version.parseVersion(session.getHeaders().get(
-		"bundle-version")));
+	newDescriptor.setVersion(session.getHeaders().get("bundle-version"));
 	if (newDescriptor.getBundleID() == null
 		|| newDescriptor.getVersion() == null) {
 	    return new Response(Status.BAD_REQUEST, "text/ascii",
@@ -231,8 +227,7 @@ public class PiPlugDaemon extends AbstractFileWebServer {
     private Response removeBundle(IHTTPSession session) {
 	BundleDescriptor toMatch = new BundleDescriptor();
 	toMatch.setBundleID(session.getHeaders().get("bundle-id"));
-	toMatch.setVersion(Version.parseVersion(session.getHeaders().get(
-		"bundle-version")));
+	toMatch.setVersion(session.getHeaders().get("bundle-version"));
 	if (toMatch.getBundleID() == null || toMatch.getVersion() == null) {
 	    return new Response(Status.BAD_REQUEST, "text/ascii",
 		    "Missing bundle headers");

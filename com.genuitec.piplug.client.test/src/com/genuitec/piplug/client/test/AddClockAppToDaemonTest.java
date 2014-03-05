@@ -17,8 +17,8 @@ import org.junit.Test;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.Version;
 
+import com.genuitec.piplug.client.BundleDescriptor;
 import com.genuitec.piplug.client.PiPlugClient;
-import com.genuitec.piplug.common.BundleDescriptor;
 import com.genuitec.piplug.daemon.PiPlugDaemon;
 
 public class AddClockAppToDaemonTest {
