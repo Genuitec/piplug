@@ -3,6 +3,7 @@ package com.genuitec.piplug.ui;
 import java.io.File;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -68,6 +69,13 @@ public class PiPlugStartupJob extends Job {
 		BundleDescriptors descriptors = (BundleDescriptors) unmarshaller
 			.unmarshal(localBundlesFile);
 		localBundlesList = descriptors.getDescriptors();
+
+		Iterator<BundleDescriptor> iter = localBundlesList.iterator();
+		while (iter.hasNext()) {
+		    BundleDescriptor next = iter.next();
+		    if (!getPathTo(next).isFile())
+			iter.remove();
+		}
 	    } catch (Exception e) {
 		e.printStackTrace();
 	    }
