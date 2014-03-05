@@ -209,4 +209,8 @@ public class PiPlugCore {
 	public Set<PiPlugBundle> getBundles() {
 		return new HashSet<PiPlugBundle>(bundles.values());
 	}
+
+	public static boolean isDebug() {
+		return "true".equals(System.getProperty("piplug.debug"));
+	}
 }

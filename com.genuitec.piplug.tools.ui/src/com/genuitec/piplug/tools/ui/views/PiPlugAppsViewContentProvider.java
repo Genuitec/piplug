@@ -20,19 +20,28 @@ public class PiPlugAppsViewContentProvider implements IStructuredContentProvider
 	public static class RefreshRunnable implements Runnable {
 
 		private Viewer viewer;
+		private PiPlugAppsView view;
 
-		public RefreshRunnable(Viewer viewer) {
+		public RefreshRunnable(Viewer viewer, PiPlugAppsView view) {
 			this.viewer = viewer;
+			this.view = view;
 		}
 
 		@Override
 		public void run() {
 			viewer.refresh();
+			view.packColumns();
 		}
 
 	}
 
 	private Viewer viewer;
+	
+	private PiPlugAppsView view;
+	
+	public PiPlugAppsViewContentProvider(PiPlugAppsView view) {
+		this.view = view;
+	}
 
 	public void inputChanged(Viewer v, Object oldInput, Object newInput) {
 		this.viewer = v;
@@ -63,7 +72,7 @@ public class PiPlugAppsViewContentProvider implements IStructuredContentProvider
 		Display display = control.getDisplay();
 		if (null == display || display.isDisposed())
 			return;
-		display.asyncExec(new PiPlugAppsViewContentProvider.RefreshRunnable(viewer));
+		display.asyncExec(new PiPlugAppsViewContentProvider.RefreshRunnable(viewer, view));
 	}
 	
 	@Override
