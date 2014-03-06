@@ -5,9 +5,13 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URL;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
 import org.eclipse.core.runtime.CoreException;
@@ -23,6 +27,7 @@ import org.osgi.framework.Version;
 
 import com.genuitec.piplug.client.BundleDescriptor;
 import com.genuitec.piplug.client.BundleEvent;
+import com.genuitec.piplug.client.BundleEventType;
 import com.genuitec.piplug.client.IPiPlugClientListener;
 import com.genuitec.piplug.client.PiPlugClient;
 import com.genuitec.piplug.daemon.PiPlugDaemon;
@@ -33,17 +38,15 @@ public class PiPlugClientTests {
 
     public class TestListener implements IPiPlugClientListener {
 
-	private BundleDescriptor added;
-	private BundleDescriptor changed;
-	private BundleDescriptor removed;
+	private List<BundleEvent> events;
 
-	public void waitForAdded(BundleDescriptor descriptor, long timeout)
-		throws TimeoutException {
-	    if (null != added)
+	public void waitFor(BundleEventType type, long timeout,
+		BundleDescriptor... descriptors) throws TimeoutException {
+	    if (gotMatchingEvents(type, descriptors))
 		return;
 	    synchronized (this) {
 		long end = System.currentTimeMillis() + timeout;
-		while (null == added) {
+		while (!gotMatchingEvents(type, descriptors)) {
 		    long waitTime = end - System.currentTimeMillis();
 		    if (waitTime <= 0)
 			throw new TimeoutException();
@@ -56,61 +59,39 @@ public class PiPlugClientTests {
 	    }
 	}
 
-	public void waitForChanged(BundleDescriptor descriptor, long timeout)
-		throws TimeoutException {
-	    if (null != changed)
-		return;
-	    synchronized (this) {
-		long end = System.currentTimeMillis() + timeout;
-		while (null == changed) {
-		    long waitTime = end - System.currentTimeMillis();
-		    if (waitTime <= 0)
-			throw new TimeoutException();
-		    try {
-			wait(waitTime);
-		    } catch (InterruptedException e) {
-			// ignore
-		    }
-		}
-	    }
-	}
+	private boolean gotMatchingEvents(BundleEventType type,
+		BundleDescriptor[] descriptors) {
+	    if (events == null || events.isEmpty())
+		return false;
+	    if (descriptors == null || descriptors.length == 0)
+		return false;
 
-	public void waitForRemoved(BundleDescriptor descriptor, long timeout)
-		throws TimeoutException {
-	    if (null != removed)
-		return;
-	    synchronized (this) {
-		long end = System.currentTimeMillis() + timeout;
-		while (null == removed) {
-		    long waitTime = end - System.currentTimeMillis();
-		    if (waitTime <= 0)
-			throw new TimeoutException();
-		    try {
-			wait(waitTime);
-		    } catch (InterruptedException e) {
-			// ignore
+	    Set<BundleDescriptor> toMatch = new HashSet<BundleDescriptor>(
+		    Arrays.asList(descriptors));
+	    for (BundleEvent event : events) {
+		if (event.getType() != type)
+		    continue;
+		BundleDescriptor descriptor = event.getDescriptor();
+
+		// BundleDescriptor#equals() includes the dates
+		// so Set math doesn't work here
+		BundleDescriptor found = null;
+		for (BundleDescriptor next : toMatch) {
+		    if (descriptor.matchesIDVersion(next)) {
+			found = next;
+			break;
 		    }
 		}
+		if (null != found)
+		    toMatch.remove(found);
 	    }
+	    return toMatch.isEmpty();
 	}
 
 	@Override
 	public void handleEvents(List<BundleEvent> events) {
-
-	    for (BundleEvent event : events) {
-		switch (event.getType()) {
-		case ADDED:
-		    this.added = event.getDescriptor();
-		    break;
-		case CHANGED:
-		    this.changed = event.getDescriptor();
-		    break;
-		case REMOVED:
-		    this.removed = event.getDescriptor();
-		    break;
-		}
-	    }
 	    synchronized (this) {
+		this.events = events;
 		notifyAll();
 	    }
 	}
@@ -122,13 +103,16 @@ public class PiPlugClientTests {
     private static InetSocketAddress directAt;
     private static String testBundleID = "com.genuitec.piplug.app.clock";
     private static String testBundleVersion = "1.0.0.201403041652";
+    private static String testBundle2ID = "com.genuitec.piplug.app.snake";
+    private static String testBundle2Version = "1.0.0";
 
     @BeforeClass
     public static void startDaemon() throws Exception {
 	storageLocation = File.createTempFile("piplug", "test");
 	storageLocation.delete();
 	storageLocation.mkdirs();
-	daemon = new PiPlugDaemon(storageLocation, false);
+	boolean debug = "true".equals(System.getProperty("daemon.debug"));
+	daemon = new PiPlugDaemon(storageLocation, debug);
 	daemon.start();
 	directAt = new InetSocketAddress("127.0.0.1", PiPlugDaemon.DAEMON_PORT);
     }
@@ -185,17 +169,7 @@ public class PiPlugClientTests {
 	    assertNotNull("bundles listing is null", listBundles);
 	    assertEquals("no bundles on start", 0, listBundles.size());
 
-	    Bundle bundle = Platform
-		    .getBundle("com.genuitec.piplug.client.test");
-	    IPath path = new Path("resources/plugins/" + testBundleID + "_"
-		    + testBundleVersion + ".jar");
-	    URL bundleURL = FileLocator.find(bundle, path, null);
-	    assertNotNull("url to bundle", bundleURL);
-	    URL fileURL = FileLocator.toFileURL(bundleURL);
-	    assertNotNull("file url to bundle", fileURL);
-	    File sourceFile = new File(fileURL.getFile());
-	    assertNotNull("file to bundle", sourceFile);
-	    assertTrue("bundle exists", sourceFile.isFile());
+	    File sourceFile = getBundle(testBundleID, testBundleVersion);
 
 	    BundleDescriptor newDescriptor;
 	    newDescriptor = new BundleDescriptor();
@@ -266,15 +240,15 @@ public class PiPlugClientTests {
      * 
      * 2. Upload a bundle to the daemon
      * 
-     * 3. Validate that the added method was called on the listener
+     * 3. Validate that we get an ADDED event
      * 
      * 4. Upload another version of the bundle to the daemon
      * 
-     * 3. Validate that the changed method was called on the listener
+     * 3. Validate that we get a CHANGED event
      * 
      * 4. Remove the bundle
      * 
-     * 5. Validate that the removed method was called on the listener
+     * 5. Validate that we get an REMOVED event
      * 
      * @throws Exception
      */
@@ -286,17 +260,7 @@ public class PiPlugClientTests {
 	    TestListener testListener = new TestListener();
 	    client.addListener(testListener);
 
-	    Bundle bundle = Platform
-		    .getBundle("com.genuitec.piplug.client.test");
-	    IPath path = new Path("resources/plugins/" + testBundleID + "_"
-		    + testBundleVersion + ".jar");
-	    URL bundleURL = FileLocator.find(bundle, path, null);
-	    assertNotNull("url to bundle", bundleURL);
-	    URL fileURL = FileLocator.toFileURL(bundleURL);
-	    assertNotNull("file url to bundle", fileURL);
-	    File sourceFile = new File(fileURL.getFile());
-	    assertNotNull("file to bundle", sourceFile);
-	    assertTrue("bundle exists", sourceFile.isFile());
+	    File sourceFile = getBundle(testBundleID, testBundleVersion);
 
 	    BundleDescriptor descriptor = null;
 	    BundleDescriptor newDescriptor = null;
@@ -308,7 +272,8 @@ public class PiPlugClientTests {
 	    try {
 		client.uploadBundle(descriptor, sourceFile);
 
-		testListener.waitForAdded(descriptor, LISTENER_TIMEOUT);
+		testListener.waitFor(BundleEventType.ADDED, LISTENER_TIMEOUT,
+			descriptor);
 		System.out.println("Got addition");
 
 		newDescriptor = new BundleDescriptor();
@@ -317,17 +282,19 @@ public class PiPlugClientTests {
 			+ "1"));
 
 		client.uploadBundle(newDescriptor, sourceFile);
+		descriptor = null;
 
-		testListener.waitForChanged(newDescriptor, LISTENER_TIMEOUT);
+		testListener.waitFor(BundleEventType.CHANGED, LISTENER_TIMEOUT,
+			newDescriptor);
 		System.out.println("Got changed");
 
-		descriptor = null;
 		BundleDescriptor waitForDescriptor = newDescriptor;
 		client.removeBundle(newDescriptor);
+		// Null this out so we don't try to remove it again
 		newDescriptor = null;
 
-		testListener
-			.waitForRemoved(waitForDescriptor, LISTENER_TIMEOUT);
+		testListener.waitFor(BundleEventType.REMOVED, LISTENER_TIMEOUT,
+			waitForDescriptor);
 		System.out.println("Got removed");
 
 	    } finally {
@@ -340,6 +307,72 @@ public class PiPlugClientTests {
 	} finally {
 	    client.disconnect();
 	}
+    }
+
+    /**
+     * Test that will:
+     * 
+     * 1. Register a client listener
+     * 
+     * 2. Upload two bundles in succession
+     * 
+     * 3. Validate that we get one batch of events with all the additions
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void listenForBatchedChanges() throws Exception {
+	PiPlugClient client = new PiPlugClient();
+	client.connectTo(directAt);
+	try {
+	    TestListener testListener = new TestListener();
+	    client.addListener(testListener);
+
+	    File sourceFile1 = getBundle(testBundleID, testBundleVersion);
+	    File sourceFile2 = getBundle(testBundle2ID, testBundle2Version);
+
+	    BundleDescriptor descriptor1 = null;
+	    BundleDescriptor descriptor2 = null;
+
+	    descriptor1 = new BundleDescriptor();
+	    descriptor1.setBundleID(testBundleID);
+	    descriptor1.setVersion(Version.parseVersion(testBundleVersion));
+
+	    descriptor2 = new BundleDescriptor();
+	    descriptor2.setBundleID(testBundle2ID);
+	    descriptor2.setVersion(Version.parseVersion(testBundle2Version));
+
+	    try {
+		client.uploadBundle(descriptor1, sourceFile1);
+		client.uploadBundle(descriptor2, sourceFile2);
+
+		testListener.waitFor(BundleEventType.ADDED, LISTENER_TIMEOUT,
+			descriptor1, descriptor2);
+	    } finally {
+		// Do our best to clean up the daemon
+		if (descriptor1 != null)
+		    client.removeBundle(descriptor1);
+		if (descriptor2 != null)
+		    client.removeBundle(descriptor2);
+	    }
+	} finally {
+	    client.disconnect();
+	}
+    }
+
+    private File getBundle(String bundleID, String bundleVersion)
+	    throws IOException {
+	Bundle bundle = Platform.getBundle("com.genuitec.piplug.client.test");
+	IPath path = new Path("resources/plugins/" + bundleID + "_"
+		+ bundleVersion + ".jar");
+	URL bundleURL = FileLocator.find(bundle, path, null);
+	assertNotNull("url to bundle", bundleURL);
+	URL fileURL = FileLocator.toFileURL(bundleURL);
+	assertNotNull("file url to bundle", fileURL);
+	File sourceFile = new File(fileURL.getFile());
+	assertNotNull("file to bundle", sourceFile);
+	assertTrue("bundle exists", sourceFile.isFile());
+	return sourceFile;
     }
 
     @AfterClass

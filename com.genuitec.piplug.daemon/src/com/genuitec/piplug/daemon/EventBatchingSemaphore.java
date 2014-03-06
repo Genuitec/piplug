@@ -3,7 +3,7 @@ package com.genuitec.piplug.daemon;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class EventNotifier {
+public class EventBatchingSemaphore {
     public class NotifyEventsTask extends TimerTask {
 	@Override
 	public void run() {
@@ -18,16 +18,19 @@ public class EventNotifier {
     private boolean notified;
 
     public void cancel() {
-	if (task != null)
+	if (task != null) {
 	    task.cancel();
+	    task = null;
+	}
     }
 
     public void schedule(long delay) {
+	notified = false;
 	task = new NotifyEventsTask();
 	timer.schedule(task, delay);
     }
 
-    public void waitForEvents() {
+    public void canReturnEvents() {
 	while (!notified) {
 	    synchronized (this) {
 		if (!notified) {
@@ -39,6 +42,7 @@ public class EventNotifier {
 		}
 	    }
 	}
+	notified = false;
     }
 
     private void doNotify() {

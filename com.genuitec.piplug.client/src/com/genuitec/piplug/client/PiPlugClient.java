@@ -88,7 +88,7 @@ public class PiPlugClient {
     protected void listenForEvents() throws CoreException {
 	checkConnected();
 	try {
-	    URL url = urlTo("/listen");
+	    URL url = urlTo("/get-events");
 	    HttpURLConnection connection = (HttpURLConnection) url
 		    .openConnection();
 	    connection.setReadTimeout(5 * 60 * 60 * 1000);

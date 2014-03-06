@@ -76,4 +76,9 @@ public class BundleDescriptor {
 		&& firstAdded.equals(o.firstAdded)
 		&& lastUpdatedOn.equals(o.lastUpdatedOn);
     }
+
+    @Override
+    public String toString() {
+	return bundleID + "_" + version;
+    }
 }

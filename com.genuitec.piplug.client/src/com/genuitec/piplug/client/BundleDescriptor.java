@@ -87,8 +87,26 @@ public class BundleDescriptor {
 	    return false;
 	BundleDescriptor o = (BundleDescriptor) obj;
 	return bundleID.equals(o.bundleID) && version.equals(o.version)
-		&& firstAdded.equals(o.firstAdded)
-		&& lastUpdatedOn.equals(o.lastUpdatedOn);
+		&& nullSafeEquals(firstAdded, o.firstAdded)
+		&& nullSafeEquals(lastUpdatedOn, o.lastUpdatedOn);
+    }
+
+    private boolean nullSafeEquals(Object o1, Object o2) {
+	if (null == o1) {
+	    if (null == o2)
+		return true;
+	    return false;
+	}
+	if (null == o2)
+	    return false;
+	return o1.equals(o2);
+    }
+
+    @Override
+    public int hashCode() {
+	return bundleID.hashCode() + 3 * version.hashCode() + 5
+		* (firstAdded == null ? 0 : firstAdded.hashCode()) + 7
+		* (lastUpdatedOn == null ? 0 : lastUpdatedOn.hashCode());
     }
 
     @Override

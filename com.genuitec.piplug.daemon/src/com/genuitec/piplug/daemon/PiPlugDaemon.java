@@ -10,6 +10,8 @@ import java.io.OutputStream;
 import java.io.StringWriter;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -38,7 +40,7 @@ public class PiPlugDaemon extends AbstractFileWebServer {
     private List<BundleDescriptor> descriptors = new ArrayList<BundleDescriptor>();
     private JAXBContext jaxb;
     private File storageLocation;
-    private EventNotifier eventNotifier = new EventNotifier();
+    private EventBatchingSemaphore eventSemaphore = new EventBatchingSemaphore();
     private List<BundleEvent> events = new ArrayList<BundleEvent>();
 
     public PiPlugDaemon(File storageLocation, boolean debug) {
@@ -112,8 +114,8 @@ public class PiPlugDaemon extends AbstractFileWebServer {
 		return putBundle(session);
 	    if (uri.equals("/get-bundle"))
 		return getBundle(session);
-	    if (uri.equals("/listen"))
-		return getNextEvents(session);
+	    if (uri.equals("/get-events"))
+		return getEvents(session);
 
 	    // File Not Found
 	    return null;
@@ -124,24 +126,39 @@ public class PiPlugDaemon extends AbstractFileWebServer {
 	}
     }
 
-    private Response getNextEvents(IHTTPSession session) throws JAXBException {
+    private Response getEvents(IHTTPSession session) throws JAXBException {
+	DateFormat format = new SimpleDateFormat("HH:mm:ss:SSS");
 	long start = System.currentTimeMillis();
-	eventNotifier.waitForEvents();
+	if (!quiet)
+	    System.out.println("Waiting to return events: "
+		    + format.format(start));
+	eventSemaphore.canReturnEvents();
+	if (!quiet)
+	    System.out.println("Done waiting, returning: "
+		    + format.format(System.currentTimeMillis()));
 
 	List<BundleEvent> responseEvents = new ArrayList<BundleEvent>();
-	// List<BundleEvent> toPrune = new ArrayList<BundleEvent>();
+	List<BundleEvent> toPrune = new ArrayList<BundleEvent>();
 	synchronized (events) {
+	    if (!quiet)
+		System.out.println("Event queue: " + events);
 	    for (BundleEvent event : events) {
-		// if (event.getAge() > 2 * EVENT_NOTIFICATION_DELAY) {
-		// toPrune.add(event);
-		// } else
-		if (event.occuredAfter(start)) {
+		if (event.occuredBefore(start)
+			&& event.getAge() > 1.5 * EVENT_NOTIFICATION_DELAY) {
+		    toPrune.add(event);
+		} else if (event.occuredAfter(start)) {
 		    responseEvents.add(event);
 		}
 	    }
-	    // events.removeAll(toPrune);
+	    if (!toPrune.isEmpty()) {
+		if (!quiet)
+		    System.out.println("Pruning: " + toPrune);
+		events.removeAll(toPrune);
+	    }
 	}
 
+	if (!quiet)
+	    System.out.println("Response events: " + responseEvents);
 	// Could optimize later
 	// if (responseEvents.isEmpty())
 	// return new Response(Status.OK, "text/ascii", "no-events");
@@ -272,9 +289,11 @@ public class PiPlugDaemon extends AbstractFileWebServer {
     }
 
     private void addEvent(BundleEvent event) {
-	events.add(event);
-	eventNotifier.cancel();
-	eventNotifier.schedule(EVENT_NOTIFICATION_DELAY);
+	synchronized (this) {
+	    events.add(event);
+	}
+	eventSemaphore.cancel();
+	eventSemaphore.schedule(EVENT_NOTIFICATION_DELAY);
     }
 
     private Response removeBundle(IHTTPSession session) {
@@ -320,6 +339,8 @@ public class PiPlugDaemon extends AbstractFileWebServer {
 		e.printStackTrace();
 	    }
 	}
+	if (!quiet)
+	    System.out.println("Loaded Bundles: " + descriptors);
     }
 
     private void saveBundlesList() {
