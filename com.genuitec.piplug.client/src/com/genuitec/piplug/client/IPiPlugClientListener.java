@@ -1,10 +1,9 @@
 package com.genuitec.piplug.client;
 
+import java.util.List;
+
 public interface IPiPlugClientListener {
-    void bundleAdded(BundleDescriptor descriptor);
 
-    void bundleChanged(BundleDescriptor descriptor);
-
-    void bundleRemoved(BundleDescriptor descriptor);
+    void handleEvents(List<BundleEvent> events);
 
 }

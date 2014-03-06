@@ -22,6 +22,7 @@ import org.osgi.framework.Bundle;
 import org.osgi.framework.Version;
 
 import com.genuitec.piplug.client.BundleDescriptor;
+import com.genuitec.piplug.client.BundleEvent;
 import com.genuitec.piplug.client.IPiPlugClientListener;
 import com.genuitec.piplug.client.PiPlugClient;
 import com.genuitec.piplug.daemon.PiPlugDaemon;
@@ -94,24 +95,21 @@ public class PiPlugClientTests {
 	}
 
 	@Override
-	public void bundleAdded(BundleDescriptor descriptor) {
-	    this.added = descriptor;
-	    synchronized (this) {
-		notifyAll();
-	    }
-	}
+	public void handleEvents(List<BundleEvent> events) {
 
-	@Override
-	public void bundleChanged(BundleDescriptor descriptor) {
-	    this.changed = descriptor;
-	    synchronized (this) {
-		notifyAll();
+	    for (BundleEvent event : events) {
+		switch (event.getType()) {
+		case ADDED:
+		    this.added = event.getDescriptor();
+		    break;
+		case CHANGED:
+		    this.changed = event.getDescriptor();
+		    break;
+		case REMOVED:
+		    this.removed = event.getDescriptor();
+		    break;
+		}
 	    }
-	}
-
-	@Override
-	public void bundleRemoved(BundleDescriptor descriptor) {
-	    this.removed = descriptor;
 	    synchronized (this) {
 		notifyAll();
 	    }

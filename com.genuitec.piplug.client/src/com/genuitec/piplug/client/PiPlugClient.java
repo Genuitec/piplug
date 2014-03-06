@@ -110,22 +110,12 @@ public class PiPlugClient {
     }
 
     private void fireEvents(List<BundleEvent> events) {
+	if (null == events || events.isEmpty())
+	    return;
 	if (listeners.isEmpty())
 	    return;
-	for (BundleEvent event : events) {
-	    for (IPiPlugClientListener listener : listeners) {
-		switch (event.getType()) {
-		case ADDED:
-		    listener.bundleAdded(event.getDescriptor());
-		    break;
-		case CHANGED:
-		    listener.bundleChanged(event.getDescriptor());
-		    break;
-		case REMOVED:
-		    listener.bundleRemoved(event.getDescriptor());
-		    break;
-		}
-	    }
+	for (IPiPlugClientListener listener : listeners) {
+	    listener.handleEvents(events);
 	}
     }
 
