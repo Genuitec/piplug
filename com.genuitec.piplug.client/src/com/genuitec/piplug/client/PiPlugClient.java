@@ -13,29 +13,119 @@ import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Unmarshaller;
 
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.Job;
 
 import com.genuitec.piplug.client.internal.DiscoverDaemonService;
 
 public class PiPlugClient {
 
+    private class ClientListeningJob extends Job {
+
+	public ClientListeningJob() {
+	    super("PiPlug Client Listener");
+	}
+
+	@Override
+	protected IStatus run(IProgressMonitor monitor) {
+	    if (null == connectedTo) {
+		return Status.OK_STATUS;
+	    }
+	    try {
+		waitForConnect(monitor);
+	    } catch (InterruptedException e) {
+		e.printStackTrace();
+	    }
+	    try {
+		listenForEvents();
+	    } catch (Exception e) {
+		// timeout, just schedule again
+		e.printStackTrace();
+	    }
+	    if (!monitor.isCanceled())
+		schedule();
+	    return Status.OK_STATUS;
+	}
+
+	private void waitForConnect(IProgressMonitor monitor)
+		throws InterruptedException {
+	    while (null == connectedTo && !monitor.isCanceled()) {
+		synchronized (PiPlugClient.this) {
+		    if (null == connectedTo)
+			wait(1000);
+		}
+	    }
+	}
+
+    }
+
     private static final String ID = "com.genuitec.piplug.client";
     private InetSocketAddress connectedTo;
     private JAXBContext jaxb;
+    private Set<IPiPlugClientListener> listeners = new HashSet<IPiPlugClientListener>();
+    private ClientListeningJob listeningJob;
 
     public PiPlugClient() {
 	try {
-	    jaxb = JAXBContext.newInstance(BundleDescriptors.class);
+	    jaxb = JAXBContext.newInstance(BundleDescriptors.class,
+		    BundleEvents.class);
 	} catch (Exception e) {
 	    throw new IllegalStateException(
 		    "Unable to prepare JAXB context for serialization");
+	}
+    }
+
+    protected void listenForEvents() throws CoreException {
+	checkConnected();
+	try {
+	    URL url = urlTo("/listen");
+	    HttpURLConnection connection = (HttpURLConnection) url
+		    .openConnection();
+	    connection.setReadTimeout(5 * 60 * 60 * 1000);
+	    Reader raw = new InputStreamReader(connection.getInputStream(),
+		    "UTF-8");
+	    try {
+		Unmarshaller unmarshaller = jaxb.createUnmarshaller();
+		Object result = unmarshaller.unmarshal(new BufferedReader(raw));
+		List<BundleEvent> events = ((BundleEvents) result).getEvents();
+		fireEvents(events);
+	    } finally {
+		raw.close();
+	    }
+	} catch (Exception ioe) {
+	    IStatus status = new Status(IStatus.ERROR, ID,
+		    "Unable to listen for events", ioe);
+	    throw new CoreException(status);
+	}
+    }
+
+    private void fireEvents(List<BundleEvent> events) {
+	if (listeners.isEmpty())
+	    return;
+	for (BundleEvent event : events) {
+	    for (IPiPlugClientListener listener : listeners) {
+		switch (event.getType()) {
+		case ADDED:
+		    listener.bundleAdded(event.getDescriptor());
+		    break;
+		case CHANGED:
+		    listener.bundleChanged(event.getDescriptor());
+		    break;
+		case REMOVED:
+		    listener.bundleRemoved(event.getDescriptor());
+		    break;
+		}
+	    }
 	}
     }
 
@@ -207,12 +297,20 @@ public class PiPlugClient {
 	}
     }
 
-    public void addListener(IPiPlugClientListener listener) {
-	// TODO Implement Me
+    public synchronized void addListener(IPiPlugClientListener listener) {
+	listeners.add(listener);
+	if (listeningJob == null) {
+	    listeningJob = new ClientListeningJob();
+	    listeningJob.schedule();
+	}
     }
 
-    public void removeListener(IPiPlugClientListener listener) {
-	// TODO Implement Me
+    public synchronized void removeListener(IPiPlugClientListener listener) {
+	listeners.remove(listener);
+	if (listeners.isEmpty()) {
+	    listeningJob.cancel();
+	    listeningJob = null;
+	}
     }
 
     private void checkConnected() throws CoreException {

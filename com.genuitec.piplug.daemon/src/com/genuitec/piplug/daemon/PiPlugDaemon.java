@@ -21,11 +21,16 @@ import javax.xml.bind.Unmarshaller;
 
 import com.genuitec.piplug.common.BundleDescriptor;
 import com.genuitec.piplug.common.BundleDescriptors;
+import com.genuitec.piplug.common.BundleEvent;
+import com.genuitec.piplug.common.BundleEventType;
+import com.genuitec.piplug.common.BundleEvents;
 
 import fi.iki.elonen.AbstractFileWebServer;
 import fi.iki.elonen.NanoHTTPD.Response.Status;
 
 public class PiPlugDaemon extends AbstractFileWebServer {
+
+    private static final int EVENT_NOTIFICATION_DELAY = 5000;
 
     public static final int DAEMON_PORT = 4392;
 
@@ -33,12 +38,15 @@ public class PiPlugDaemon extends AbstractFileWebServer {
     private List<BundleDescriptor> descriptors = new ArrayList<BundleDescriptor>();
     private JAXBContext jaxb;
     private File storageLocation;
+    private EventNotifier eventNotifier = new EventNotifier();
+    private List<BundleEvent> events = new ArrayList<BundleEvent>();
 
     public PiPlugDaemon(File storageLocation, boolean debug) {
 	super(null, DAEMON_PORT, !debug); // null = bound to all interfaces
 	this.storageLocation = storageLocation;
 	try {
-	    jaxb = JAXBContext.newInstance(BundleDescriptors.class);
+	    jaxb = JAXBContext.newInstance(BundleDescriptors.class,
+		    BundleEvents.class);
 	} catch (Exception e) {
 	    throw new IllegalStateException(
 		    "Unable to prepare JAXB context for serialization");
@@ -83,7 +91,8 @@ public class PiPlugDaemon extends AbstractFileWebServer {
     public void stop() {
 	super.stop();
 	try {
-	    datagramSocket.close();
+	    if (null != datagramSocket)
+		datagramSocket.close();
 	} catch (Exception e) {
 	    e.printStackTrace();
 	}
@@ -103,6 +112,8 @@ public class PiPlugDaemon extends AbstractFileWebServer {
 		return putBundle(session);
 	    if (uri.equals("/get-bundle"))
 		return getBundle(session);
+	    if (uri.equals("/listen"))
+		return getNextEvents(session);
 
 	    // File Not Found
 	    return null;
@@ -111,6 +122,36 @@ public class PiPlugDaemon extends AbstractFileWebServer {
 	    return new Response(Status.INTERNAL_ERROR, "text/ascii",
 		    "Could not process or handle request");
 	}
+    }
+
+    private Response getNextEvents(IHTTPSession session) throws JAXBException {
+	long start = System.currentTimeMillis();
+	eventNotifier.waitForEvents();
+
+	List<BundleEvent> responseEvents = new ArrayList<BundleEvent>();
+	// List<BundleEvent> toPrune = new ArrayList<BundleEvent>();
+	synchronized (events) {
+	    for (BundleEvent event : events) {
+		// if (event.getAge() > 2 * EVENT_NOTIFICATION_DELAY) {
+		// toPrune.add(event);
+		// } else
+		if (event.occuredAfter(start)) {
+		    responseEvents.add(event);
+		}
+	    }
+	    // events.removeAll(toPrune);
+	}
+
+	// Could optimize later
+	// if (responseEvents.isEmpty())
+	// return new Response(Status.OK, "text/ascii", "no-events");
+
+	Marshaller marshaller = jaxb.createMarshaller();
+	BundleEvents events = new BundleEvents();
+	events.setEvents(responseEvents);
+	StringWriter sw = new StringWriter();
+	marshaller.marshal(events, sw);
+	return new Response(Status.OK, "text/xml", sw.toString());
     }
 
     private Response getBundle(IHTTPSession session) {
@@ -162,7 +203,7 @@ public class PiPlugDaemon extends AbstractFileWebServer {
 	BundleDescriptor existingDescriptor = null;
 	synchronized (descriptors) {
 	    for (BundleDescriptor next : descriptors) {
-		if (next.matchesIDVersion(newDescriptor)) {
+		if (next.matchesID(newDescriptor)) {
 		    existingDescriptor = next;
 		    break;
 		}
@@ -218,10 +259,22 @@ public class PiPlugDaemon extends AbstractFileWebServer {
 	    saveBundlesList();
 	}
 
-	if (existingDescriptor != null)
+	BundleEventType type = BundleEventType.ADDED;
+	if (existingDescriptor != null
+		&& !existingDescriptor.getVersion().equals(
+			newDescriptor.getVersion())) {
 	    getPathTo(existingDescriptor).delete();
+	    type = BundleEventType.CHANGED;
+	}
 
+	addEvent(new BundleEvent(type, newDescriptor));
 	return new Response(Status.OK, "text/ascii", "uploaded-bundle");
+    }
+
+    private void addEvent(BundleEvent event) {
+	events.add(event);
+	eventNotifier.cancel();
+	eventNotifier.schedule(EVENT_NOTIFICATION_DELAY);
     }
 
     private Response removeBundle(IHTTPSession session) {
@@ -248,8 +301,10 @@ public class PiPlugDaemon extends AbstractFileWebServer {
 	    File toDelete = getPathTo(toMatch);
 	    if (!toDelete.delete())
 		toDelete.deleteOnExit();
+	    addEvent(new BundleEvent(BundleEventType.REMOVED, toMatch));
 	    return new Response(Status.OK, "text/ascii", "removed-bundle");
 	}
+
 	return new Response(Status.NOT_FOUND, "text/ascii", "bundle-not-found");
     }
 

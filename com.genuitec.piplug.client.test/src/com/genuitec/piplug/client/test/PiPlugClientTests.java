@@ -8,6 +8,7 @@ import java.io.File;
 import java.net.InetSocketAddress;
 import java.net.URL;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.FileLocator;
@@ -21,10 +22,102 @@ import org.osgi.framework.Bundle;
 import org.osgi.framework.Version;
 
 import com.genuitec.piplug.client.BundleDescriptor;
+import com.genuitec.piplug.client.IPiPlugClientListener;
 import com.genuitec.piplug.client.PiPlugClient;
 import com.genuitec.piplug.daemon.PiPlugDaemon;
 
 public class PiPlugClientTests {
+
+    private static final int LISTENER_TIMEOUT = 10000;
+
+    public class TestListener implements IPiPlugClientListener {
+
+	private BundleDescriptor added;
+	private BundleDescriptor changed;
+	private BundleDescriptor removed;
+
+	public void waitForAdded(BundleDescriptor descriptor, long timeout)
+		throws TimeoutException {
+	    if (null != added)
+		return;
+	    synchronized (this) {
+		long end = System.currentTimeMillis() + timeout;
+		while (null == added) {
+		    long waitTime = end - System.currentTimeMillis();
+		    if (waitTime <= 0)
+			throw new TimeoutException();
+		    try {
+			wait(waitTime);
+		    } catch (InterruptedException e) {
+			// ignore
+		    }
+		}
+	    }
+	}
+
+	public void waitForChanged(BundleDescriptor descriptor, long timeout)
+		throws TimeoutException {
+	    if (null != changed)
+		return;
+	    synchronized (this) {
+		long end = System.currentTimeMillis() + timeout;
+		while (null == changed) {
+		    long waitTime = end - System.currentTimeMillis();
+		    if (waitTime <= 0)
+			throw new TimeoutException();
+		    try {
+			wait(waitTime);
+		    } catch (InterruptedException e) {
+			// ignore
+		    }
+		}
+	    }
+	}
+
+	public void waitForRemoved(BundleDescriptor descriptor, long timeout)
+		throws TimeoutException {
+	    if (null != removed)
+		return;
+	    synchronized (this) {
+		long end = System.currentTimeMillis() + timeout;
+		while (null == removed) {
+		    long waitTime = end - System.currentTimeMillis();
+		    if (waitTime <= 0)
+			throw new TimeoutException();
+		    try {
+			wait(waitTime);
+		    } catch (InterruptedException e) {
+			// ignore
+		    }
+		}
+	    }
+	}
+
+	@Override
+	public void bundleAdded(BundleDescriptor descriptor) {
+	    this.added = descriptor;
+	    synchronized (this) {
+		notifyAll();
+	    }
+	}
+
+	@Override
+	public void bundleChanged(BundleDescriptor descriptor) {
+	    this.changed = descriptor;
+	    synchronized (this) {
+		notifyAll();
+	    }
+	}
+
+	@Override
+	public void bundleRemoved(BundleDescriptor descriptor) {
+	    this.removed = descriptor;
+	    synchronized (this) {
+		notifyAll();
+	    }
+	}
+
+    }
 
     private static PiPlugDaemon daemon;
     private static File storageLocation;
@@ -163,6 +256,89 @@ public class PiPlugClientTests {
 	    assertNotNull("bundles listing", listBundles);
 	    assertEquals("bundle removed after removal", 0, listBundles.size());
 
+	} finally {
+	    client.disconnect();
+	}
+    }
+
+    /**
+     * Test that will:
+     * 
+     * 1. Register a client listener
+     * 
+     * 2. Upload a bundle to the daemon
+     * 
+     * 3. Validate that the added method was called on the listener
+     * 
+     * 4. Upload another version of the bundle to the daemon
+     * 
+     * 3. Validate that the changed method was called on the listener
+     * 
+     * 4. Remove the bundle
+     * 
+     * 5. Validate that the removed method was called on the listener
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void listenForChanges() throws Exception {
+	PiPlugClient client = new PiPlugClient();
+	client.connectTo(directAt);
+	try {
+	    TestListener testListener = new TestListener();
+	    client.addListener(testListener);
+
+	    Bundle bundle = Platform
+		    .getBundle("com.genuitec.piplug.client.test");
+	    IPath path = new Path("resources/plugins/" + testBundleID + "_"
+		    + testBundleVersion + ".jar");
+	    URL bundleURL = FileLocator.find(bundle, path, null);
+	    assertNotNull("url to bundle", bundleURL);
+	    URL fileURL = FileLocator.toFileURL(bundleURL);
+	    assertNotNull("file url to bundle", fileURL);
+	    File sourceFile = new File(fileURL.getFile());
+	    assertNotNull("file to bundle", sourceFile);
+	    assertTrue("bundle exists", sourceFile.isFile());
+
+	    BundleDescriptor descriptor = null;
+	    BundleDescriptor newDescriptor = null;
+
+	    descriptor = new BundleDescriptor();
+	    descriptor.setBundleID(testBundleID);
+	    descriptor.setVersion(Version.parseVersion(testBundleVersion));
+
+	    try {
+		client.uploadBundle(descriptor, sourceFile);
+
+		testListener.waitForAdded(descriptor, LISTENER_TIMEOUT);
+		System.out.println("Got addition");
+
+		newDescriptor = new BundleDescriptor();
+		newDescriptor.setBundleID(testBundleID);
+		newDescriptor.setVersion(Version.parseVersion(testBundleVersion
+			+ "1"));
+
+		client.uploadBundle(newDescriptor, sourceFile);
+
+		testListener.waitForChanged(newDescriptor, LISTENER_TIMEOUT);
+		System.out.println("Got changed");
+
+		descriptor = null;
+		BundleDescriptor waitForDescriptor = newDescriptor;
+		client.removeBundle(newDescriptor);
+		newDescriptor = null;
+
+		testListener
+			.waitForRemoved(waitForDescriptor, LISTENER_TIMEOUT);
+		System.out.println("Got removed");
+
+	    } finally {
+		// Do our best to clean up the daemon
+		if (descriptor != null)
+		    client.removeBundle(descriptor);
+		if (newDescriptor != null)
+		    client.removeBundle(newDescriptor);
+	    }
 	} finally {
 	    client.disconnect();
 	}
