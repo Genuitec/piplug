@@ -111,6 +111,12 @@ public class DeployOperation {
 		try {
 			deployBuiltBundles(sourceBundles, pluginsDir, client, status);
 			deployBinaryBundles(binaryBundles, client, status);
+			
+			try {
+				client.notifyClients();
+			} catch (CoreException ce) {
+				ce.printStackTrace();
+			}
 		} finally {
 			if (status.isOK()) {
 				if (PiPlugCore.isDebug())
@@ -150,18 +156,21 @@ public class DeployOperation {
 			String id = nameAndVersion.substring(0, underscoreIndex);
 			String version = nameAndVersion.substring(underscoreIndex + 1,
 					dotIndex);
-			
+
+			BundleDescriptor descriptor = new BundleDescriptor();
+			descriptor.setBundleID(id);
+			descriptor.setVersion(version);
 			String appName = null;
 			for (PiPlugBundle bundle : sourceBundles) {
+				bundle.setDescriptor(descriptor);
 				if (id.equals(bundle.getDescriptor().getBundleID())) {
 					appName = bundle.getExtensions().first().getName();
 					break;
 				}
 			}
-			BundleDescriptor descriptor = new BundleDescriptor();
+
 			descriptor.setAppName(appName);
-			descriptor.setBundleID(id);
-			descriptor.setVersion(version);
+
 			try {
 				client.uploadBundle(descriptor, file);
 				status.add(new Status(IStatus.OK, Activator.PLUGIN_ID,

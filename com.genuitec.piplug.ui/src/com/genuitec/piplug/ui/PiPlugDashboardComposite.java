@@ -79,6 +79,8 @@ public class PiPlugDashboardComposite extends Composite {
     private Composite buttonsArea;
     PiPlugAppContainer container;
     public PiPlugAppHandle runningApp;
+    private GridLayout buttonsAreaLayout;
+    private GridData buttonsAreaGD;
 
     public PiPlugDashboardComposite(PiPlugAppContainer container,
 	    Map<BundleDescriptor, IPiPlugApplication> applications) {
@@ -98,15 +100,14 @@ public class PiPlugDashboardComposite extends Composite {
 
 	buttonsArea = new Composite(this, SWT.NONE);
 	buttonsArea.setBackground(theme.getBackgroundColor());
-	layout = new GridLayout(Math.min(4, applications.size()), false);
-	layout.marginWidth = layout.marginHeight = 0;
-	layout.horizontalSpacing = 40;
-	layout.verticalSpacing = 40;
-	buttonsArea.setLayout(layout);
-	GridData gd = new GridData(SWT.CENTER, SWT.CENTER, true, true);
-	int size = layout.numColumns;
-	gd.widthHint = (size * 256) + ((size - 1) * 40);
-	buttonsArea.setLayoutData(gd);
+	buttonsAreaLayout = new GridLayout(1, false);
+	buttonsAreaLayout.marginWidth = layout.marginHeight = 0;
+	buttonsAreaLayout.horizontalSpacing = 40;
+	buttonsAreaLayout.verticalSpacing = 40;
+	buttonsArea.setLayout(buttonsAreaLayout);
+	buttonsAreaGD = new GridData(SWT.CENTER, SWT.CENTER, true, true);
+	buttonsArea.setLayoutData(buttonsAreaGD);
+	updateButtonsLayout(applications);
 
 	for (Entry<BundleDescriptor, IPiPlugApplication> next : applications
 		.entrySet())
@@ -115,13 +116,23 @@ public class PiPlugDashboardComposite extends Composite {
 	sortApps();
 
 	Label quit = new Label(this, SWT.NONE);
-	gd = new GridData(SWT.RIGHT, SWT.BOTTOM, true, false);
+	GridData gd = new GridData(SWT.RIGHT, SWT.BOTTOM, true, false);
 	gd.widthHint = 48;
 	gd.heightHint = 48;
 	quit.setLayoutData(gd);
 	quit.setImage(PiPlugUIActivator.loadImage("images/icon-quit48.png"));
 	quit.addMouseListener(new CloseShellListener());
 	quit.setBackground(theme.getBackgroundColor());
+    }
+
+    private boolean updateButtonsLayout(
+	    Map<BundleDescriptor, IPiPlugApplication> applications) {
+	int newColumns = Math.min(4, applications.size());
+	if (newColumns == buttonsAreaLayout.numColumns)
+	    return false;
+	buttonsAreaLayout.numColumns = newColumns;
+	buttonsAreaGD.widthHint = (newColumns * 256) + ((newColumns - 1) * 40);
+	return true;
     }
 
     private void sortApps() {
@@ -301,7 +312,7 @@ public class PiPlugDashboardComposite extends Composite {
 		app.installed(container.getServices());
 	    }
 
-	    if (madeChanges) {
+	    if (updateButtonsLayout(apps) || madeChanges) {
 		changedAppHandles();
 	    }
 	}

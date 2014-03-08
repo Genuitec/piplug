@@ -55,6 +55,12 @@ public class RemoveOperation {
 					e.printStackTrace();
 				}				
 			}
+			try {
+				client.notifyClients();
+			} catch (CoreException e) {
+				// TODO better error handling
+				e.printStackTrace();
+			}				
 		} finally {
 
 			try {

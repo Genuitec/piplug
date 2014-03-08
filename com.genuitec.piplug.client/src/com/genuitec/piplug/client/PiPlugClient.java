@@ -51,7 +51,7 @@ public class PiPlugClient {
 	    } catch (Exception e) {
 		// timeout, just schedule again
 		if (!monitor.isCanceled()) {
-		    e.printStackTrace();
+		    // e.printStackTrace();
 		    schedule(30000);
 		}
 		return Status.OK_STATUS;
@@ -336,5 +336,17 @@ public class PiPlugClient {
 	checkConnected();
 	return new URL("http", connectedTo.getHostName(),
 		connectedTo.getPort(), path);
+    }
+
+    public void notifyClients() throws CoreException {
+	checkConnected();
+	try {
+	    InputStream in = urlTo("/notify-clients").openStream();
+	    in.close();
+	} catch (Exception ioe) {
+	    IStatus status = new Status(IStatus.ERROR, ID,
+		    "Unable to send client notification request", ioe);
+	    throw new CoreException(status);
+	}
     }
 }

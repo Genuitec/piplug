@@ -115,6 +115,8 @@ public class PiPlugDaemon extends AbstractFileWebServer {
 		return getBundle(session);
 	    if (uri.equals("/wait-for-changes"))
 		return getChangedBundles(session);
+	    if (uri.equals("/notify-clients"))
+		return notifyClients();
 
 	    // File Not Found
 	    return null;
@@ -123,6 +125,17 @@ public class PiPlugDaemon extends AbstractFileWebServer {
 	    return new Response(Status.INTERNAL_ERROR, "text/ascii",
 		    "Could not process or handle request");
 	}
+    }
+
+    private Response notifyClients() {
+	try {
+	    // Notify listeners of new bundles now
+	    eventSemaphore.cancel();
+	    eventSemaphore.schedule(100);
+	} catch (Exception e) {
+	    e.printStackTrace();
+	}
+	return new Response(Status.OK, "text/ascii", "notification-triggered");
     }
 
     private Response getChangedBundles(IHTTPSession session)
