@@ -48,12 +48,16 @@ public class SnakeApplication implements IPiPlugApplication {
 
     @Override
     public void suspend(IPiPlugServices services) {
+	if (mainView == null || mainView.getGameField() == null)
+	    return;
 	suspended = !mainView.getGameField().isGamePaused();
 	mainView.getGameField().pauseGame();
     }
 
     @Override
     public void shutdown(IPiPlugServices services) {
-	mainView.dispose();
+	if (mainView != null)
+	    mainView.dispose();
+	mainView = null;
     }
 }

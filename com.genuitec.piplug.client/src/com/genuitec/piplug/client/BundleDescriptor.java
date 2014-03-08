@@ -3,30 +3,19 @@ package com.genuitec.piplug.client;
 import java.util.Date;
 
 import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-
-import org.osgi.framework.Version;
-
-import com.genuitec.piplug.client.internal.VersionXmlAdapter;
 
 @XmlRootElement(name = "descriptor")
 public class BundleDescriptor {
 
     private String bundleID;
-    private Version version;
+    private String version;
     private Date firstAdded;
     private Date lastUpdatedOn;
+    private String appName;
 
+    // default constructor required for jaxb
     public BundleDescriptor() {
-	// default constructor
-    }
 
-    public BundleDescriptor(String bundleID, Version version, Date firstAdded,
-	    Date lastUpdatedOn) {
-	this.bundleID = bundleID;
-	this.version = version;
-	this.firstAdded = firstAdded;
-	this.lastUpdatedOn = lastUpdatedOn;
     }
 
     public String getBundleID() {
@@ -37,12 +26,11 @@ public class BundleDescriptor {
 	this.bundleID = bundleID;
     }
 
-    @XmlJavaTypeAdapter(value = VersionXmlAdapter.class)
-    public Version getVersion() {
+    public String getVersion() {
 	return version;
     }
 
-    public void setVersion(Version version) {
+    public void setVersion(String version) {
 	this.version = version;
     }
 
@@ -60,6 +48,14 @@ public class BundleDescriptor {
 
     public void setLastUpdatedOn(Date lastUpdatedOn) {
 	this.lastUpdatedOn = lastUpdatedOn;
+    }
+
+    public void setAppName(String appName) {
+	this.appName = appName;
+    }
+
+    public String getAppName() {
+	return appName;
     }
 
     /**

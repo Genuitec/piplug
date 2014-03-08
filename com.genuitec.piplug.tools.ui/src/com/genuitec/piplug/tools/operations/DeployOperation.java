@@ -21,7 +21,6 @@ import org.eclipse.pde.core.plugin.IPluginModelBase;
 import org.eclipse.pde.internal.core.exports.FeatureExportInfo;
 import org.eclipse.pde.internal.core.exports.PluginExportOperation;
 import org.eclipse.ui.PlatformUI;
-import org.osgi.framework.Version;
 
 import com.genuitec.piplug.client.BundleDescriptor;
 import com.genuitec.piplug.client.PiPlugClient;
@@ -44,7 +43,7 @@ public class DeployOperation {
 	}
 
 	private void buildPlugins() {
-		Set<PiPlugBundle> sourceBundles = new HashSet<PiPlugBundle>();
+		final Set<PiPlugBundle> sourceBundles = new HashSet<PiPlugBundle>();
 		final Set<PiPlugBundle> binaryBundles = new HashSet<PiPlugBundle>();
 		bucketSelectedExtensions(sourceBundles, binaryBundles);
 		final FeatureExportInfo info;
@@ -74,7 +73,7 @@ public class DeployOperation {
 								job.getResult());
 					}
 				} else if (event.getResult().isOK()) {
-					deployBundles(info, binaryBundles);
+					deployBundles(info, sourceBundles, binaryBundles);
 				}
 			}
 		});
@@ -82,7 +81,7 @@ public class DeployOperation {
 	}
 
 	protected void deployBundles(FeatureExportInfo info,
-			Set<PiPlugBundle> binaryBundles) {
+			Set<PiPlugBundle> sourceBundles, Set<PiPlugBundle> binaryBundles) {
 		File exportDir = new File(info.destinationDirectory);
 		File pluginsDir = new File(exportDir, "plugins");
 
@@ -110,7 +109,7 @@ public class DeployOperation {
 				"Deployment of bundles report", null);
 
 		try {
-			deployBuiltBundles(pluginsDir, client, status);
+			deployBuiltBundles(sourceBundles, pluginsDir, client, status);
 			deployBinaryBundles(binaryBundles, client, status);
 		} finally {
 			if (status.isOK()) {
@@ -141,7 +140,7 @@ public class DeployOperation {
 
 	}
 
-	private void deployBuiltBundles(File pluginsDir, PiPlugClient client,
+	private void deployBuiltBundles(Set<PiPlugBundle> sourceBundles, File pluginsDir, PiPlugClient client,
 			MultiStatus status) {
 		File[] plugins = pluginsDir.listFiles();
 		for (File file : plugins) {
@@ -151,8 +150,18 @@ public class DeployOperation {
 			String id = nameAndVersion.substring(0, underscoreIndex);
 			String version = nameAndVersion.substring(underscoreIndex + 1,
 					dotIndex);
-			BundleDescriptor descriptor = new BundleDescriptor(id,
-					Version.parseVersion(version), null, null);
+			
+			String appName = null;
+			for (PiPlugBundle bundle : sourceBundles) {
+				if (id.equals(bundle.getDescriptor().getBundleID())) {
+					appName = bundle.getExtensions().first().getName();
+					break;
+				}
+			}
+			BundleDescriptor descriptor = new BundleDescriptor();
+			descriptor.setAppName(appName);
+			descriptor.setBundleID(id);
+			descriptor.setVersion(version);
 			try {
 				client.uploadBundle(descriptor, file);
 				status.add(new Status(IStatus.OK, Activator.PLUGIN_ID,

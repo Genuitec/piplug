@@ -32,41 +32,75 @@ public class PiPlugClient {
 
     private class ClientListeningJob extends Job {
 
+	private HttpURLConnection connection;
+
 	public ClientListeningJob() {
 	    super("PiPlug Client Listener");
+	    setSystem(true);
+	    setUser(false);
 	}
 
 	@Override
 	protected IStatus run(IProgressMonitor monitor) {
 	    if (null == connectedTo) {
+		schedule(1000);
 		return Status.OK_STATUS;
-	    }
-	    try {
-		waitForConnect(monitor);
-	    } catch (InterruptedException e) {
-		e.printStackTrace();
 	    }
 	    try {
 		listenForEvents();
 	    } catch (Exception e) {
 		// timeout, just schedule again
-		e.printStackTrace();
+		if (!monitor.isCanceled()) {
+		    e.printStackTrace();
+		    schedule(30000);
+		}
+		return Status.OK_STATUS;
 	    }
 	    if (!monitor.isCanceled())
 		schedule();
 	    return Status.OK_STATUS;
 	}
 
-	private void waitForConnect(IProgressMonitor monitor)
-		throws InterruptedException {
-	    while (null == connectedTo && !monitor.isCanceled()) {
-		synchronized (PiPlugClient.this) {
-		    if (null == connectedTo)
-			wait(1000);
+	protected void listenForEvents() throws CoreException {
+	    checkConnected();
+	    try {
+		URL url = urlTo("/wait-for-changes");
+		connection = (HttpURLConnection) url.openConnection();
+		connection.setReadTimeout(5 * 60 * 1000);
+		connection.addRequestProperty("client-sync-time", Long
+			.toString(bundleDescriptors == null ? 0
+				: bundleDescriptors.getSyncTime()));
+		Reader raw = new InputStreamReader(connection.getInputStream(),
+			"UTF-8");
+		try {
+		    Unmarshaller unmarshaller = jaxb.createUnmarshaller();
+		    Object result = unmarshaller.unmarshal(new BufferedReader(
+			    raw));
+		    bundleDescriptors = (BundleDescriptors) result;
+		    System.out.println("Received new bundles: "
+			    + bundleDescriptors.getSyncTime());
+		    fireNewBundleListEvents();
+		} finally {
+		    connection = null;
+		    raw.close();
 		}
+	    } catch (Exception ioe) {
+		IStatus status = new Status(IStatus.ERROR, ID,
+			"Unable to listen for events", ioe);
+		throw new CoreException(status);
 	    }
 	}
 
+	public void shutdown() {
+	    cancel();
+	    if (connection != null) {
+		try {
+		    connection.disconnect();
+		} catch (Throwable t) {
+		    // ignore
+		}
+	    }
+	}
     }
 
     private static final String ID = "com.genuitec.piplug.client";
@@ -74,48 +108,24 @@ public class PiPlugClient {
     private JAXBContext jaxb;
     private Set<IPiPlugClientListener> listeners = new HashSet<IPiPlugClientListener>();
     private ClientListeningJob listeningJob;
+    private BundleDescriptors bundleDescriptors;
 
     public PiPlugClient() {
 	try {
-	    jaxb = JAXBContext.newInstance(BundleDescriptors.class,
-		    BundleEvents.class);
+	    jaxb = JAXBContext.newInstance(BundleDescriptors.class);
 	} catch (Exception e) {
 	    throw new IllegalStateException(
 		    "Unable to prepare JAXB context for serialization");
 	}
     }
 
-    protected void listenForEvents() throws CoreException {
-	checkConnected();
-	try {
-	    URL url = urlTo("/get-events");
-	    HttpURLConnection connection = (HttpURLConnection) url
-		    .openConnection();
-	    connection.setReadTimeout(5 * 60 * 60 * 1000);
-	    Reader raw = new InputStreamReader(connection.getInputStream(),
-		    "UTF-8");
-	    try {
-		Unmarshaller unmarshaller = jaxb.createUnmarshaller();
-		Object result = unmarshaller.unmarshal(new BufferedReader(raw));
-		List<BundleEvent> events = ((BundleEvents) result).getEvents();
-		fireEvents(events);
-	    } finally {
-		raw.close();
-	    }
-	} catch (Exception ioe) {
-	    IStatus status = new Status(IStatus.ERROR, ID,
-		    "Unable to listen for events", ioe);
-	    throw new CoreException(status);
-	}
-    }
-
-    private void fireEvents(List<BundleEvent> events) {
-	if (null == events || events.isEmpty())
+    private void fireNewBundleListEvents() {
+	if (null == bundleDescriptors)
 	    return;
 	if (listeners.isEmpty())
 	    return;
 	for (IPiPlugClientListener listener : listeners) {
-	    listener.handleEvents(events);
+	    listener.newBundleList(bundleDescriptors);
 	}
     }
 
@@ -132,6 +142,9 @@ public class PiPlugClient {
 		String response = new BufferedReader(raw).readLine();
 		if ("connection-alive".equals(response)) {
 		    connectedTo = address;
+		    initializeBundles();
+		    listeningJob = new ClientListeningJob();
+		    listeningJob.schedule();
 		} else {
 		    IStatus status = new Status(IStatus.ERROR, ID,
 			    "Unable to connect to " + address
@@ -150,11 +163,21 @@ public class PiPlugClient {
     }
 
     public void disconnect() throws CoreException {
-	// TODO clean up listener thread
 	connectedTo = null;
+	if (null != listeningJob) {
+	    listeningJob.shutdown();
+	    listeningJob = null;
+	}
     }
 
-    public List<BundleDescriptor> listBundles() throws CoreException {
+    public BundleDescriptors getBundlesFromCache() throws CoreException {
+	checkConnected();
+	if (bundleDescriptors == null)
+	    return null;
+	return bundleDescriptors;
+    }
+
+    private List<BundleDescriptor> initializeBundles() throws CoreException {
 	checkConnected();
 	try {
 	    Reader raw = new InputStreamReader(urlTo("/list-bundles")
@@ -162,7 +185,8 @@ public class PiPlugClient {
 	    try {
 		Unmarshaller unmarshaller = jaxb.createUnmarshaller();
 		Object result = unmarshaller.unmarshal(new BufferedReader(raw));
-		return ((BundleDescriptors) result).getDescriptors();
+		bundleDescriptors = (BundleDescriptors) result;
+		return bundleDescriptors.getDescriptors();
 	    } finally {
 		raw.close();
 	    }
@@ -289,18 +313,10 @@ public class PiPlugClient {
 
     public synchronized void addListener(IPiPlugClientListener listener) {
 	listeners.add(listener);
-	if (listeningJob == null) {
-	    listeningJob = new ClientListeningJob();
-	    listeningJob.schedule();
-	}
     }
 
     public synchronized void removeListener(IPiPlugClientListener listener) {
 	listeners.remove(listener);
-	if (listeners.isEmpty()) {
-	    listeningJob.cancel();
-	    listeningJob = null;
-	}
     }
 
     private void checkConnected() throws CoreException {

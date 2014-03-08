@@ -10,11 +10,9 @@ import java.io.OutputStream;
 import java.io.StringWriter;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
+import java.util.Set;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -23,37 +21,38 @@ import javax.xml.bind.Unmarshaller;
 
 import com.genuitec.piplug.common.BundleDescriptor;
 import com.genuitec.piplug.common.BundleDescriptors;
-import com.genuitec.piplug.common.BundleEvent;
-import com.genuitec.piplug.common.BundleEventType;
-import com.genuitec.piplug.common.BundleEvents;
 
 import fi.iki.elonen.AbstractFileWebServer;
 import fi.iki.elonen.NanoHTTPD.Response.Status;
 
 public class PiPlugDaemon extends AbstractFileWebServer {
 
-    private static final int EVENT_NOTIFICATION_DELAY = 5000;
+    private static final int EVENT_NOTIFICATION_DELAY = 15000;
 
     public static final int DAEMON_PORT = 4392;
 
     private DatagramSocket datagramSocket;
-    private List<BundleDescriptor> descriptors = new ArrayList<BundleDescriptor>();
+    private BundleDescriptors bundleDescriptors = new BundleDescriptors();
     private JAXBContext jaxb;
     private File storageLocation;
-    private EventBatchingSemaphore eventSemaphore = new EventBatchingSemaphore();
-    private List<BundleEvent> events = new ArrayList<BundleEvent>();
+    private EventBatchingSemaphore eventSemaphore;
 
     public PiPlugDaemon(File storageLocation, boolean debug) {
 	super(null, DAEMON_PORT, !debug); // null = bound to all interfaces
 	this.storageLocation = storageLocation;
 	try {
-	    jaxb = JAXBContext.newInstance(BundleDescriptors.class,
-		    BundleEvents.class);
+	    jaxb = JAXBContext.newInstance(BundleDescriptors.class);
 	} catch (Exception e) {
 	    throw new IllegalStateException(
 		    "Unable to prepare JAXB context for serialization");
 	}
+	bundleDescriptors.setDescriptors(new ArrayList<BundleDescriptor>());
+	bundleDescriptors.setSyncTime(System.currentTimeMillis());
 	loadBundlesList();
+	if (debug)
+	    System.out.println("Initial daemon sync time: "
+		    + bundleDescriptors.getSyncTime());
+	eventSemaphore = new EventBatchingSemaphore(bundleDescriptors, debug);
     }
 
     public static void main(String[] args) throws IOException {
@@ -114,8 +113,8 @@ public class PiPlugDaemon extends AbstractFileWebServer {
 		return putBundle(session);
 	    if (uri.equals("/get-bundle"))
 		return getBundle(session);
-	    if (uri.equals("/get-events"))
-		return getEvents(session);
+	    if (uri.equals("/wait-for-changes"))
+		return getChangedBundles(session);
 
 	    // File Not Found
 	    return null;
@@ -126,49 +125,30 @@ public class PiPlugDaemon extends AbstractFileWebServer {
 	}
     }
 
-    private Response getEvents(IHTTPSession session) throws JAXBException {
-	DateFormat format = new SimpleDateFormat("HH:mm:ss:SSS");
-	long start = System.currentTimeMillis();
-	if (!quiet)
-	    System.out.println("Waiting to return events: "
-		    + format.format(start));
-	eventSemaphore.canReturnEvents();
-	if (!quiet)
-	    System.out.println("Done waiting, returning: "
-		    + format.format(System.currentTimeMillis()));
-
-	List<BundleEvent> responseEvents = new ArrayList<BundleEvent>();
-	List<BundleEvent> toPrune = new ArrayList<BundleEvent>();
-	synchronized (events) {
-	    if (!quiet)
-		System.out.println("Event queue: " + events);
-	    for (BundleEvent event : events) {
-		if (event.occuredBefore(start)
-			&& event.getAge() > 1.5 * EVENT_NOTIFICATION_DELAY) {
-		    toPrune.add(event);
-		} else if (event.occuredAfter(start)) {
-		    responseEvents.add(event);
-		}
-	    }
-	    if (!toPrune.isEmpty()) {
-		if (!quiet)
-		    System.out.println("Pruning: " + toPrune);
-		events.removeAll(toPrune);
-	    }
-	}
-
-	if (!quiet)
-	    System.out.println("Response events: " + responseEvents);
-	// Could optimize later
-	// if (responseEvents.isEmpty())
-	// return new Response(Status.OK, "text/ascii", "no-events");
+    private Response getChangedBundles(IHTTPSession session)
+	    throws JAXBException {
+	long clientSyncTime = getClientSyncTime(session);
+	eventSemaphore.canReturnEvents(clientSyncTime);
 
 	Marshaller marshaller = jaxb.createMarshaller();
-	BundleEvents events = new BundleEvents();
-	events.setEvents(responseEvents);
 	StringWriter sw = new StringWriter();
-	marshaller.marshal(events, sw);
+	BundleDescriptors clone;
+	synchronized (bundleDescriptors) {
+	    clone = (BundleDescriptors) bundleDescriptors.clone();
+	}
+	marshaller.marshal(clone, sw);
 	return new Response(Status.OK, "text/xml", sw.toString());
+    }
+
+    private long getClientSyncTime(IHTTPSession session) {
+	String time = session.getHeaders().get("client-sync-time");
+	if (time == null)
+	    return 0;
+	try {
+	    return Long.parseLong(time);
+	} catch (Exception e) {
+	    return 0;
+	}
     }
 
     private Response getBundle(IHTTPSession session) {
@@ -181,13 +161,8 @@ public class PiPlugDaemon extends AbstractFileWebServer {
 	}
 
 	BundleDescriptor match = null;
-	synchronized (descriptors) {
-	    for (BundleDescriptor next : descriptors) {
-		if (next.matchesIDVersion(toMatch)) {
-		    match = next;
-		    break;
-		}
-	    }
+	synchronized (bundleDescriptors) {
+	    match = bundleDescriptors.matchByIDVersion(toMatch);
 	}
 	if (match != null) {
 	    File toReturn = getPathTo(match);
@@ -217,18 +192,14 @@ public class PiPlugDaemon extends AbstractFileWebServer {
 		    "Missing bundle headers");
 	}
 
-	BundleDescriptor existingDescriptor = null;
-	synchronized (descriptors) {
-	    for (BundleDescriptor next : descriptors) {
-		if (next.matchesID(newDescriptor)) {
-		    existingDescriptor = next;
-		    break;
-		}
-	    }
+	Set<BundleDescriptor> existingDescriptors = null;
+	synchronized (bundleDescriptors) {
+	    existingDescriptors = bundleDescriptors.matchesByID(newDescriptor);
 	}
 	newDescriptor.setLastUpdatedOn(new Date());
-	if (existingDescriptor != null)
-	    newDescriptor.setFirstAdded(existingDescriptor.getFirstAdded());
+	if (!existingDescriptors.isEmpty())
+	    newDescriptor.setFirstAdded(existingDescriptors.iterator().next()
+		    .getFirstAdded());
 	else
 	    newDescriptor.setFirstAdded(newDescriptor.getLastUpdatedOn());
 
@@ -269,31 +240,25 @@ public class PiPlugDaemon extends AbstractFileWebServer {
 	targetFile.delete();
 	newFile.renameTo(targetFile);
 
-	synchronized (descriptors) {
-	    if (existingDescriptor != null)
-		descriptors.remove(existingDescriptor);
-	    descriptors.add(newDescriptor);
+	synchronized (bundleDescriptors) {
+	    System.out.println("Before: " + bundleDescriptors.getDescriptors());
+	    for (BundleDescriptor bundleDescriptor : existingDescriptors) {
+		if (!bundleDescriptors.remove(bundleDescriptor))
+		    System.out.println("Failed to remove " + bundleDescriptor);
+	    }
+	    bundleDescriptors.add(newDescriptor);
 	    saveBundlesList();
+	    System.out.println("After: " + bundleDescriptors.getDescriptors());
 	}
 
-	BundleEventType type = BundleEventType.ADDED;
-	if (existingDescriptor != null
-		&& !existingDescriptor.getVersion().equals(
-			newDescriptor.getVersion())) {
-	    getPathTo(existingDescriptor).delete();
-	    type = BundleEventType.CHANGED;
+	for (BundleDescriptor existingDescriptor : existingDescriptors) {
+	    if (!existingDescriptor.getVersion().equals(
+		    newDescriptor.getVersion())) {
+		getPathTo(existingDescriptor).delete();
+	    }
 	}
 
-	addEvent(new BundleEvent(type, newDescriptor));
 	return new Response(Status.OK, "text/ascii", "uploaded-bundle");
-    }
-
-    private void addEvent(BundleEvent event) {
-	synchronized (this) {
-	    events.add(event);
-	}
-	eventSemaphore.cancel();
-	eventSemaphore.schedule(EVENT_NOTIFICATION_DELAY);
     }
 
     private Response removeBundle(IHTTPSession session) {
@@ -306,13 +271,12 @@ public class PiPlugDaemon extends AbstractFileWebServer {
 	}
 
 	boolean match = false;
-	synchronized (descriptors) {
-	    for (BundleDescriptor next : descriptors) {
-		if (next.matchesIDVersion(toMatch)) {
-		    descriptors.remove(next);
-		    match = true;
-		    break;
-		}
+	synchronized (bundleDescriptors) {
+	    BundleDescriptor matched = bundleDescriptors
+		    .matchByIDVersion(toMatch);
+	    if (matched != null) {
+		bundleDescriptors.remove(matched);
+		match = true;
 	    }
 	    saveBundlesList();
 	}
@@ -320,7 +284,6 @@ public class PiPlugDaemon extends AbstractFileWebServer {
 	    File toDelete = getPathTo(toMatch);
 	    if (!toDelete.delete())
 		toDelete.deleteOnExit();
-	    addEvent(new BundleEvent(BundleEventType.REMOVED, toMatch));
 	    return new Response(Status.OK, "text/ascii", "removed-bundle");
 	}
 
@@ -334,21 +297,23 @@ public class PiPlugDaemon extends AbstractFileWebServer {
 		Unmarshaller unmarshaller = jaxb.createUnmarshaller();
 		BundleDescriptors persistDescriptors = (BundleDescriptors) unmarshaller
 			.unmarshal(bundlesFile);
-		descriptors = persistDescriptors.getDescriptors();
+		bundleDescriptors = persistDescriptors;
 	    } catch (Exception e) {
 		e.printStackTrace();
 	    }
 	}
 	if (!quiet)
-	    System.out.println("Loaded Bundles: " + descriptors);
+	    System.out.println("Loaded Bundles: " + bundleDescriptors);
     }
 
     private void saveBundlesList() {
 	try {
 	    Marshaller marshaller = jaxb.createMarshaller();
-	    BundleDescriptors persistDescriptors = new BundleDescriptors();
-	    persistDescriptors.setDescriptors(descriptors);
-	    marshaller.marshal(persistDescriptors, getBundlesListFile());
+	    marshaller.marshal(bundleDescriptors, getBundlesListFile());
+
+	    // Notify listeners of new bundles after a delay
+	    eventSemaphore.cancel();
+	    eventSemaphore.schedule(EVENT_NOTIFICATION_DELAY);
 	} catch (Exception e) {
 	    e.printStackTrace();
 	}
@@ -365,9 +330,9 @@ public class PiPlugDaemon extends AbstractFileWebServer {
 
     private Response listBundles() throws JAXBException {
 	Marshaller marshaller = jaxb.createMarshaller();
-	BundleDescriptors response = new BundleDescriptors();
-	synchronized (descriptors) {
-	    response.setDescriptors(new ArrayList<BundleDescriptor>(descriptors));
+	BundleDescriptors response;
+	synchronized (bundleDescriptors) {
+	    response = (BundleDescriptors) bundleDescriptors.clone();
 	}
 	StringWriter sw = new StringWriter();
 	marshaller.marshal(response, sw);

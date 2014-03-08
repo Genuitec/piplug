@@ -3,16 +3,13 @@ package com.genuitec.piplug.client.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URL;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
-import java.util.concurrent.TimeoutException;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.FileLocator;
@@ -23,11 +20,9 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.osgi.framework.Bundle;
-import org.osgi.framework.Version;
 
 import com.genuitec.piplug.client.BundleDescriptor;
-import com.genuitec.piplug.client.BundleEvent;
-import com.genuitec.piplug.client.BundleEventType;
+import com.genuitec.piplug.client.BundleDescriptors;
 import com.genuitec.piplug.client.IPiPlugClientListener;
 import com.genuitec.piplug.client.PiPlugClient;
 import com.genuitec.piplug.daemon.PiPlugDaemon;
@@ -38,64 +33,46 @@ public class PiPlugClientTests {
 
     public class TestListener implements IPiPlugClientListener {
 
-	private List<BundleEvent> events;
+	private BundleDescriptors descriptors = null;
+	private boolean duplicateEvents = false;
+	private PiPlugClient client;
 
-	public void waitFor(BundleEventType type, long timeout,
-		BundleDescriptor... descriptors) throws TimeoutException {
-	    if (gotMatchingEvents(type, descriptors))
-		return;
+	public TestListener(PiPlugClient client) {
+	    this.client = client;
+	}
+
+	public BundleDescriptors waitForDescriptors(long timeout)
+		throws InterruptedException {
+	    if (duplicateEvents)
+		fail("Received duplicate events");
+	    if (descriptors != null)
+		return descriptors;
 	    synchronized (this) {
-		long end = System.currentTimeMillis() + timeout;
-		while (!gotMatchingEvents(type, descriptors)) {
-		    long waitTime = end - System.currentTimeMillis();
-		    if (waitTime <= 0)
-			throw new TimeoutException();
-		    try {
-			wait(waitTime);
-		    } catch (InterruptedException e) {
-			// ignore
-		    }
-		}
+		wait(timeout);
+		return descriptors;
 	    }
 	}
 
-	private boolean gotMatchingEvents(BundleEventType type,
-		BundleDescriptor[] descriptors) {
-	    if (events == null || events.isEmpty())
-		return false;
-	    if (descriptors == null || descriptors.length == 0)
-		return false;
-
-	    Set<BundleDescriptor> toMatch = new HashSet<BundleDescriptor>(
-		    Arrays.asList(descriptors));
-	    for (BundleEvent event : events) {
-		if (event.getType() != type)
-		    continue;
-		BundleDescriptor descriptor = event.getDescriptor();
-
-		// BundleDescriptor#equals() includes the dates
-		// so Set math doesn't work here
-		BundleDescriptor found = null;
-		for (BundleDescriptor next : toMatch) {
-		    if (descriptor.matchesIDVersion(next)) {
-			found = next;
-			break;
-		    }
-		}
-		if (null != found)
-		    toMatch.remove(found);
+	public void reset() {
+	    duplicateEvents = false;
+	    descriptors = null;
+	    try {
+		System.out.println("Client sync time: "
+			+ client.getBundlesFromCache().getSyncTime());
+	    } catch (CoreException e) {
+		e.printStackTrace();
 	    }
-	    return toMatch.isEmpty();
 	}
 
 	@Override
-	public void handleEvents(List<BundleEvent> events) {
+	public void newBundleList(BundleDescriptors descriptors) {
+	    if (this.descriptors != null)
+		duplicateEvents = true;
 	    synchronized (this) {
-		this.events = events;
+		this.descriptors = descriptors;
 		notifyAll();
 	    }
 	}
-
     }
 
     private static PiPlugDaemon daemon;
@@ -143,99 +120,6 @@ public class PiPlugClientTests {
     /**
      * Test that will:
      * 
-     * 1. Validate no bundles are in the daemon
-     * 
-     * 2. Upload a bundle to the daemon
-     * 
-     * 3. Validate bundle list includes the new bundle
-     * 
-     * 4. Download the bundle
-     * 
-     * 5. Validate bundle size matches
-     * 
-     * 6. Remove the bundle
-     * 
-     * 7. Validate it is removed from the bundle list
-     * 
-     * @throws Exception
-     */
-    @Test
-    public void uploadDownloadAndRemoveBundle() throws Exception {
-	PiPlugClient client = new PiPlugClient();
-	client.connectTo(directAt);
-	try {
-
-	    List<BundleDescriptor> listBundles = client.listBundles();
-	    assertNotNull("bundles listing is null", listBundles);
-	    assertEquals("no bundles on start", 0, listBundles.size());
-
-	    File sourceFile = getBundle(testBundleID, testBundleVersion);
-
-	    BundleDescriptor newDescriptor;
-	    newDescriptor = new BundleDescriptor();
-	    newDescriptor.setBundleID(testBundleID);
-	    newDescriptor.setVersion(Version.parseVersion(testBundleVersion));
-
-	    client.uploadBundle(newDescriptor, sourceFile);
-
-	    listBundles = client.listBundles();
-	    assertNotNull("bundles listing is null", listBundles);
-	    assertEquals("bundle exists after upload", 1, listBundles.size());
-
-	    try {
-
-		BundleDescriptor matchedDescriptor = null;
-		for (BundleDescriptor next : listBundles) {
-		    if (next.matchesIDVersion(newDescriptor)) {
-			matchedDescriptor = next;
-			break;
-		    }
-		}
-		assertNotNull("found match for descriptor", matchedDescriptor);
-		assertNotNull("last updated not set",
-			matchedDescriptor.getLastUpdatedOn());
-		assertNotNull("first added not set",
-			matchedDescriptor.getFirstAdded());
-
-		File tempFile = File.createTempFile(testBundleID, ".tmp");
-		tempFile.deleteOnExit();
-		try {
-
-		    client.downloadBundle(matchedDescriptor, tempFile);
-
-		    assertEquals("file sizes match", sourceFile.length(),
-			    tempFile.length());
-
-		} finally {
-		    tempFile.delete();
-		}
-
-	    } catch (Exception e) {
-
-		// if we get an error during download test, still clean up the
-		// descriptor but don't do validation
-		try {
-		    client.removeBundle(newDescriptor);
-		} catch (Exception ignored) {
-		}
-
-		throw e;
-	    }
-
-	    client.removeBundle(newDescriptor);
-
-	    listBundles = client.listBundles();
-	    assertNotNull("bundles listing", listBundles);
-	    assertEquals("bundle removed after removal", 0, listBundles.size());
-
-	} finally {
-	    client.disconnect();
-	}
-    }
-
-    /**
-     * Test that will:
-     * 
      * 1. Register a client listener
      * 
      * 2. Upload a bundle to the daemon
@@ -257,7 +141,7 @@ public class PiPlugClientTests {
 	PiPlugClient client = new PiPlugClient();
 	client.connectTo(directAt);
 	try {
-	    TestListener testListener = new TestListener();
+	    TestListener testListener = new TestListener(client);
 	    client.addListener(testListener);
 
 	    File sourceFile = getBundle(testBundleID, testBundleVersion);
@@ -267,42 +151,58 @@ public class PiPlugClientTests {
 
 	    descriptor = new BundleDescriptor();
 	    descriptor.setBundleID(testBundleID);
-	    descriptor.setVersion(Version.parseVersion(testBundleVersion));
+	    descriptor.setVersion(testBundleVersion);
 
 	    try {
+		testListener.reset();
 		client.uploadBundle(descriptor, sourceFile);
+		BundleDescriptors descriptors = testListener
+			.waitForDescriptors(LISTENER_TIMEOUT);
 
-		testListener.waitFor(BundleEventType.ADDED, LISTENER_TIMEOUT,
-			descriptor);
+		assertNotNull("Timout during wait for addition", descriptors);
+		Set<BundleDescriptor> additions = descriptors
+			.matchesByIDVersion(descriptor);
+		assertTrue("Did not get an added bundle", !additions.isEmpty());
 		System.out.println("Got addition");
 
 		newDescriptor = new BundleDescriptor();
 		newDescriptor.setBundleID(testBundleID);
-		newDescriptor.setVersion(Version.parseVersion(testBundleVersion
-			+ "1"));
+		newDescriptor.setVersion(testBundleVersion + "1");
 
+		testListener.reset();
 		client.uploadBundle(newDescriptor, sourceFile);
+		descriptors = testListener.waitForDescriptors(LISTENER_TIMEOUT);
+
+		Set<BundleDescriptor> removals = descriptors
+			.matchesByIDVersion(descriptor);
+		assertTrue("Did not remove the old bundle", removals.isEmpty());
+		additions = descriptors.matchesByIDVersion(newDescriptor);
+		assertTrue("Did not get a changed bundle", !additions.isEmpty());
+		System.out.println("Got changed");
 		descriptor = null;
 
-		testListener.waitFor(BundleEventType.CHANGED, LISTENER_TIMEOUT,
-			newDescriptor);
-		System.out.println("Got changed");
-
-		BundleDescriptor waitForDescriptor = newDescriptor;
+		testListener.reset();
 		client.removeBundle(newDescriptor);
+		descriptors = testListener.waitForDescriptors(LISTENER_TIMEOUT);
+
+		removals = descriptors.matchesByIDVersion(newDescriptor);
+		assertTrue("Did not remove the bundle", removals.isEmpty());
+		System.out.println("Got removed");
+
 		// Null this out so we don't try to remove it again
 		newDescriptor = null;
 
-		testListener.waitFor(BundleEventType.REMOVED, LISTENER_TIMEOUT,
-			waitForDescriptor);
-		System.out.println("Got removed");
-
 	    } finally {
 		// Do our best to clean up the daemon
-		if (descriptor != null)
-		    client.removeBundle(descriptor);
-		if (newDescriptor != null)
-		    client.removeBundle(newDescriptor);
+		try {
+		    if (descriptor != null)
+			client.removeBundle(descriptor);
+		    if (newDescriptor != null)
+			client.removeBundle(newDescriptor);
+		} catch (Exception e) {
+		    // print out but let real exception through
+		    e.printStackTrace();
+		}
 	    }
 	} finally {
 	    client.disconnect();
@@ -325,7 +225,7 @@ public class PiPlugClientTests {
 	PiPlugClient client = new PiPlugClient();
 	client.connectTo(directAt);
 	try {
-	    TestListener testListener = new TestListener();
+	    TestListener testListener = new TestListener(client);
 	    client.addListener(testListener);
 
 	    File sourceFile1 = getBundle(testBundleID, testBundleVersion);
@@ -336,24 +236,45 @@ public class PiPlugClientTests {
 
 	    descriptor1 = new BundleDescriptor();
 	    descriptor1.setBundleID(testBundleID);
-	    descriptor1.setVersion(Version.parseVersion(testBundleVersion));
+	    descriptor1.setVersion(testBundleVersion);
 
 	    descriptor2 = new BundleDescriptor();
 	    descriptor2.setBundleID(testBundle2ID);
-	    descriptor2.setVersion(Version.parseVersion(testBundle2Version));
+	    descriptor2.setVersion(testBundle2Version);
 
 	    try {
+		testListener.reset();
 		client.uploadBundle(descriptor1, sourceFile1);
 		client.uploadBundle(descriptor2, sourceFile2);
 
-		testListener.waitFor(BundleEventType.ADDED, LISTENER_TIMEOUT,
-			descriptor1, descriptor2);
+		BundleDescriptors batchedDescriptors = testListener
+			.waitForDescriptors(LISTENER_TIMEOUT);
+		Set<BundleDescriptor> additions = batchedDescriptors
+			.matchesByIDVersion(descriptor1, descriptor2);
+		assertEquals(2, additions.size());
+
+		testListener.reset();
+		client.removeBundle(descriptor1);
+		client.removeBundle(descriptor2);
+
+		batchedDescriptors = testListener
+			.waitForDescriptors(LISTENER_TIMEOUT);
+		Set<BundleDescriptor> removals = batchedDescriptors
+			.matchesByIDVersion(descriptor1, descriptor2);
+		assertEquals(0, removals.size());
+		descriptor1 = null;
+		descriptor2 = null;
 	    } finally {
-		// Do our best to clean up the daemon
-		if (descriptor1 != null)
-		    client.removeBundle(descriptor1);
-		if (descriptor2 != null)
-		    client.removeBundle(descriptor2);
+		try {
+		    // Do our best to clean up the daemon
+		    if (descriptor1 != null)
+			client.removeBundle(descriptor1);
+		    if (descriptor2 != null)
+			client.removeBundle(descriptor2);
+		} catch (Exception e) {
+		    // allow real exception through
+		    e.printStackTrace();
+		}
 	    }
 	} finally {
 	    client.disconnect();

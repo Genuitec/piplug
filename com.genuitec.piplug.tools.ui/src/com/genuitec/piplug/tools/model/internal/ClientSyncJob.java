@@ -1,7 +1,6 @@
 package com.genuitec.piplug.tools.model.internal;
 
 import java.net.InetSocketAddress;
-import java.util.List;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -9,7 +8,7 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 
-import com.genuitec.piplug.client.BundleDescriptor;
+import com.genuitec.piplug.client.BundleDescriptors;
 import com.genuitec.piplug.client.PiPlugClient;
 import com.genuitec.piplug.tools.model.PiPlugCore;
 
@@ -46,8 +45,8 @@ public class ClientSyncJob extends Job {
 			monitor.worked(1000);
 			
 			try {
-				List<BundleDescriptor> bundles = client.listBundles();
-				PiPlugCore.getInstance().setRemoteBundles(bundles);
+				BundleDescriptors bundles = client.getBundlesFromCache();
+				PiPlugCore.getInstance().setRemoteBundleDescriptors(bundles);
 			} catch (CoreException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

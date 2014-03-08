@@ -34,9 +34,7 @@ public class PiPlugApplication implements IApplication {
 	shell.setMaximized(true);
 	shell.open();
 
-	PiPlugStartupJob job = new PiPlugStartupJob(container, startup);
-	// idle processor to allow VNC or other display actions to run smoothly
-	job.schedule(500);
+	PiPlugRuntimeServices.getInstance().startup(container, startup);
 
 	// run the display loop
 	while (!shell.isDisposed() && display.sleep()) {

@@ -7,7 +7,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.net.InetSocketAddress;
 import java.net.URL;
-import java.util.List;
+import java.util.Set;
 
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.IPath;
@@ -15,9 +15,9 @@ import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Platform;
 import org.junit.Test;
 import org.osgi.framework.Bundle;
-import org.osgi.framework.Version;
 
 import com.genuitec.piplug.client.BundleDescriptor;
+import com.genuitec.piplug.client.BundleDescriptors;
 import com.genuitec.piplug.client.PiPlugClient;
 import com.genuitec.piplug.daemon.PiPlugDaemon;
 
@@ -49,14 +49,14 @@ public class AddClockAppToDaemonTest {
 	    BundleDescriptor newDescriptor;
 	    newDescriptor = new BundleDescriptor();
 	    newDescriptor.setBundleID(testBundleID);
-	    newDescriptor.setVersion(Version.parseVersion(testBundleVersion));
+	    newDescriptor.setVersion(testBundleVersion);
 
-	    List<BundleDescriptor> listBundles = client.listBundles();
+	    BundleDescriptors listBundles = client.getBundlesFromCache();
 	    assertNotNull("bundles listing is null", listBundles);
-	    for (BundleDescriptor next : listBundles) {
-		if (next.matchesIDVersion(newDescriptor))
-		    return; // already on server
-	    }
+	    Set<BundleDescriptor> matches = listBundles
+		    .matchesByIDVersion(newDescriptor);
+	    if (!matches.isEmpty())
+		return;
 
 	    Bundle bundle = Platform
 		    .getBundle("com.genuitec.piplug.client.test");

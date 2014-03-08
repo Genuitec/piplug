@@ -1,16 +1,15 @@
 package com.genuitec.piplug.ui;
 
-import java.util.List;
-
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StackLayout;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;
-import org.osgi.framework.Bundle;
 
 import com.genuitec.piplug.api.IPiPlugServices;
 import com.genuitec.piplug.api.IPiPlugUITheme;
+import com.genuitec.piplug.client.BundleDescriptor;
 import com.genuitec.piplug.client.PiPlugClient;
+import com.genuitec.piplug.ui.PiPlugDashboardComposite.PiPlugAppHandle;
 
 public class PiPlugAppContainer extends Composite {
 
@@ -24,7 +23,6 @@ public class PiPlugAppContainer extends Composite {
     private StackLayout stackLayout;
     private IPiPlugServices services;
     private PiPlugDashboardComposite home;
-    private List<Bundle> loadedBundles;
     private PiPlugClient client;
 
     public PiPlugAppContainer(Composite parent, PiPlugServices services) {
@@ -60,28 +58,26 @@ public class PiPlugAppContainer extends Composite {
 	getDisplay().asyncExec(new SuspendAppRunnable());
     }
 
-    public void setLoadedBundles(List<Bundle> loadedBundles) {
-	this.loadedBundles = loadedBundles;
-    }
-
     public void setClient(PiPlugClient client) {
 	this.client = client;
     }
 
-    public void cleanup() {
-	for (Bundle next : loadedBundles) {
-	    try {
-		next.stop();
-	    } catch (Exception ignored) {
-		// best effort
-	    }
-	}
-	for (Bundle next : loadedBundles) {
-	    try {
-		next.uninstall();
-	    } catch (Exception ignored) {
-		// best effort
-	    }
-	}
+    public IStatusLine getStatusLine() {
+	return new ContainerStatusLine(this);
     }
+
+    public PiPlugAppHandle findAppHandle(BundleDescriptor next) {
+	if (home == null)
+	    return null;
+	return home.findAppHandle(next);
+    }
+
+    public void setStatus(String message) {
+	System.out.println(message);
+    }
+
+    public PiPlugDashboardComposite getHome() {
+	return home;
+    }
+
 }

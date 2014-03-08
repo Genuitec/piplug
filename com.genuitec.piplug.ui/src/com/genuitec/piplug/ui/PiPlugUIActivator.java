@@ -10,6 +10,7 @@ import org.osgi.framework.BundleContext;
 
 public class PiPlugUIActivator implements BundleActivator {
 
+    public static final String PLUGIN_ID = "com.genuitec.piplug.ui";
     private static BundleContext context;
     private static ImageRegistry registry;
 

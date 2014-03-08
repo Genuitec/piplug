@@ -13,7 +13,8 @@ public class DeploymentStatus {
 	}
 
 	public DeploymentState getState() {
-		return descriptor.getLastUpdatedOn() == null ? DeploymentState.DEPLOYED : DeploymentState.NEVER_DEPLOYED;
+		return descriptor.getLastUpdatedOn() == null ? DeploymentState.NEVER_DEPLOYED
+				: DeploymentState.DEPLOYED;
 	}
 
 	public Date getDate() {

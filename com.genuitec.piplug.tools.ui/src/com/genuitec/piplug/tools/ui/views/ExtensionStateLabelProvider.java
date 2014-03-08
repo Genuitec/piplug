@@ -9,7 +9,7 @@ import com.genuitec.piplug.tools.model.PiPlugExtension;
 
 public class ExtensionStateLabelProvider extends
 		ColumnLabelProvider {
-	private DateFormat format = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT);
+	private static final DateFormat format = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT);
 
 	@Override
 	public String getText(Object element) {

@@ -36,6 +36,8 @@ public class DeployView extends ViewPart {
 
 	private List<TableViewerColumn> columns;
 
+	private RemoveAction removeAction;
+
 	// required for extension point
 	public DeployView() {
 	}
@@ -127,10 +129,11 @@ public class DeployView extends ViewPart {
 
 	private void fillContextMenu(IMenuManager manager) {
 		manager.add(deployAction);
-		manager.add(new Separator());
 		manager.add(runLocallyAction);
 		// Other plug-ins can contribute there actions here
 		manager.add(new Separator(IWorkbenchActionConstants.MB_ADDITIONS));
+		manager.add(new Separator());
+		manager.add(removeAction);
 	}
 
 	private void fillLocalToolBar(IToolBarManager manager) {
@@ -142,6 +145,7 @@ public class DeployView extends ViewPart {
 	private void makeActions() {
 		deployAction = new DeployAction(getSite());
 		runLocallyAction = new RunLocallyAction(getSite());
+		removeAction = new RemoveAction(getSite());
 	}
 
 	/**

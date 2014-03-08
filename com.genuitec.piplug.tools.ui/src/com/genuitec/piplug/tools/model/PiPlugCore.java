@@ -3,7 +3,6 @@ package com.genuitec.piplug.tools.model;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -15,7 +14,6 @@ import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.osgi.service.resolver.BundleDescription;
 import org.eclipse.pde.core.plugin.IExtensions;
 import org.eclipse.pde.core.plugin.IPluginAttribute;
-import org.eclipse.pde.core.plugin.IPluginBase;
 import org.eclipse.pde.core.plugin.IPluginElement;
 import org.eclipse.pde.core.plugin.IPluginExtension;
 import org.eclipse.pde.core.plugin.IPluginModelBase;
@@ -27,9 +25,9 @@ import org.eclipse.pde.internal.core.IPluginModelListener;
 import org.eclipse.pde.internal.core.PDECore;
 import org.eclipse.pde.internal.core.PDEExtensionRegistry;
 import org.eclipse.pde.internal.core.PluginModelDelta;
-import org.osgi.framework.Version;
 
 import com.genuitec.piplug.client.BundleDescriptor;
+import com.genuitec.piplug.client.BundleDescriptors;
 import com.genuitec.piplug.client.PiPlugClient;
 import com.genuitec.piplug.tools.model.internal.ClientSyncJob;
 
@@ -112,10 +110,10 @@ public class PiPlugCore {
 
 	private static final PiPlugCore instance = new PiPlugCore();
 	private Map<BundleDescriptor, PiPlugBundle> localBundles = new HashMap<BundleDescriptor, PiPlugBundle>();
-	private List<BundleDescriptor> remoteBundles;
+	private BundleDescriptors remoteBundleDescriptors;
 	private Set<IPiPlugBundleListener> listeners = new HashSet<IPiPlugBundleListener>();
 	private PiPlugClient client;
-	
+
 	public static PiPlugCore getInstance() {
 		return instance;
 	}
@@ -124,8 +122,7 @@ public class PiPlugCore {
 		listeners.add(listener);
 	}
 
-	public void removePiPlugApplicationListener(
-			IPiPlugBundleListener listener) {
+	public void removePiPlugApplicationListener(IPiPlugBundleListener listener) {
 		listeners.remove(listener);
 	}
 
@@ -148,8 +145,7 @@ public class PiPlugCore {
 			if (null == bundle)
 				continue;
 
-			localBundles.put(PiPlugCore.fromPluginModelBase(plugin),
-					bundle);
+			localBundles.put(PiPlugCore.fromPluginModelBase(plugin), bundle);
 			fireBundleEvent(bundle, listenerFlag);
 		}
 	}
@@ -164,8 +160,7 @@ public class PiPlugCore {
 		IPluginExtension[] extensions = pluginExtensions.getExtensions();
 		if (null != extensions && extensions.length > 0) {
 			for (IPluginExtension extension : extensions) {
-				for (ExtensionType extensionType : ExtensionType
-						.values()) {
+				for (ExtensionType extensionType : ExtensionType.values()) {
 					if (extensionType.getExtensionPointId().equals(
 							extension.getPoint())) {
 						bundleExtensions.addAll(getExtensions(extension,
@@ -208,8 +203,8 @@ public class PiPlugCore {
 		}
 	}
 
-	private Set<PiPlugExtension> getExtensions(
-			IPluginExtension extension, ExtensionType extensionType) {
+	private Set<PiPlugExtension> getExtensions(IPluginExtension extension,
+			ExtensionType extensionType) {
 		IPluginObject[] children = extension.getChildren();
 		HashSet<PiPlugExtension> extensions = new HashSet<PiPlugExtension>();
 		if (null == children || children.length == 0)
@@ -244,8 +239,7 @@ public class PiPlugCore {
 				IPluginAttribute imageAttribute = element.getAttribute("image");
 				String image = imageAttribute == null ? null : imageAttribute
 						.getValue();
-				extensions.add(new PiPlugExtension(name, image,
-						extensionType));
+				extensions.add(new PiPlugExtension(name, image, extensionType));
 			}
 		}
 
@@ -303,38 +297,38 @@ public class PiPlugCore {
 		return new HashSet<PiPlugBundle>(localBundles.values());
 	}
 
-	public static BundleDescriptor fromPluginModelBase(IPluginBase plugin) {
-		return new BundleDescriptor(plugin.getId(), Version.parseVersion(plugin.getVersion()), null, null);
-	}
-
 	public static BundleDescriptor fromPluginModelBase(IPluginModelBase plugin) {
 		BundleDescription bundleDescription = plugin.getBundleDescription();
-		return new BundleDescriptor(bundleDescription.getName(), bundleDescription.getVersion(), null, null);
+		BundleDescriptor descriptor = new BundleDescriptor();
+		descriptor.setBundleID(bundleDescription.getName());
+		descriptor.setVersion(bundleDescription.getVersion().toString());
+		return descriptor;
 	}
 
 	public static boolean isDebug() {
 		return "true".equals(System.getProperty("piplug.debug"));
 	}
-	
-	public void setRemoteBundles(List<BundleDescriptor> bundles) {
-		this.remoteBundles = bundles;
+
+	public void setRemoteBundleDescriptors(BundleDescriptors bundles) {
+		this.remoteBundleDescriptors = bundles;
 		assignNewDescriptors();
 	}
 
 	private void assignNewDescriptors() {
-		if (remoteBundles == null) {
+		if (remoteBundleDescriptors == null) {
 			// Null out dates in old descriptors
 		} else {
 			Map<BundleDescriptor, BundleDescriptor> toReHash = new HashMap<BundleDescriptor, BundleDescriptor>();
 			for (BundleDescriptor localDescriptor : localBundles.keySet()) {
-				for (BundleDescriptor remoteDescriptor : remoteBundles) {
+				for (BundleDescriptor remoteDescriptor : remoteBundleDescriptors.getDescriptors()) {
 					if (localDescriptor.matchesID(remoteDescriptor)) {
 						toReHash.put(localDescriptor, remoteDescriptor);
 					}
 				}
 			}
-			
-			for (Entry<BundleDescriptor, BundleDescriptor> next : toReHash.entrySet()) {
+
+			for (Entry<BundleDescriptor, BundleDescriptor> next : toReHash
+					.entrySet()) {
 				BundleDescriptor localDescriptor = next.getKey();
 				PiPlugBundle bundle = localBundles.remove(localDescriptor);
 				BundleDescriptor remoteDescriptor = next.getValue();
