@@ -26,7 +26,6 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.ImageData;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
@@ -35,14 +34,31 @@ import org.osgi.framework.Bundle;
 import com.genuitec.piplug.api.IPiPlugServices;
 
 import es.org.chemi.games.snake.SnakePlugin;
-import es.org.chemi.games.snake.nls.SnakeMessages;
 import es.org.chemi.games.snake.util.Constants;
 import es.org.chemi.games.snake.util.Counter;
 import es.org.chemi.games.snake.util.Preferences;
 
 public class MainView {
+    public class ResetGameListener extends MouseAdapter {
+	@Override
+	public void mouseDown(MouseEvent arg0) {
+	    SnakePlugin.trace(this.getClass().getName(),
+		    "New game creation solicited."); //$NON-NLS-1$
+
+	    SnakePlugin.getResourceManager().getSound(Constants.SOUND_START)
+		    .play();
+
+	    // Restart the game.
+	    gameField.stopGame(false);
+	    gameField.resetGame();
+	    gameField.createGameField();
+	    // pauseAction.setIsGamePaused(false);
+	    setFocus();
+	}
+    }
+
     GameField gameField = null;
-    private Button mainButton = null;
+    private Label mainButton = null;
     private Counter counter = null;
 
     // private ExpertAction expertAction = null;
@@ -390,48 +406,35 @@ public class MainView {
     private void createView(Composite parent) {
 	// Create the counter.
 	SnakePlugin.trace(this.getClass().getName(), "Adding the counter."); //$NON-NLS-1$
+
+	// Create the main button.
+	SnakePlugin.trace(this.getClass().getName(), "Adding the main button."); //$NON-NLS-1$
 	GridData gridData = new GridData();
 	gridData.horizontalAlignment = GridData.BEGINNING;
+	gridData.verticalAlignment = GridData.CENTER;
+	gridData.widthHint = 48;
+	gridData.heightHint = 48;
+	mainButton = new Label(parent, SWT.NONE);
+	mainButton.setLayoutData(gridData);
+	Bundle bundle = Platform.getBundle("com.genuitec.piplug.app.snake");
+	URL url = bundle.getEntry("icons/icon-restart48.png");
+	mainButton.setImage(ImageDescriptor.createFromURL(url).createImage());
+	mainButton.addMouseListener(new ResetGameListener());
+	mainButton.setBackground(parent.getBackground());
+
+	gridData = new GridData();
+	gridData.horizontalAlignment = GridData.CENTER;
 	gridData.verticalAlignment = GridData.CENTER;
 	this.counter = new Counter(parent, SWT.BORDER, 4, 0,
 		Constants.PLUGIN_ID);
 	this.counter.setLayoutData(gridData);
 
-	// Create the main button.
-	SnakePlugin.trace(this.getClass().getName(), "Adding the main button."); //$NON-NLS-1$
-	gridData = new GridData();
-	gridData.horizontalAlignment = GridData.CENTER;
-	gridData.verticalAlignment = GridData.CENTER;
-	this.mainButton = new Button(parent, SWT.PUSH);
-	this.mainButton.setImage(SnakePlugin.getResourceManager().getImage(
-		Constants.IMAGE_SNAKE));
-	this.mainButton.setToolTipText(SnakeMessages
-		.getString("MainView.reset")); //$NON-NLS-1$
-	this.mainButton.setLayoutData(gridData);
-	this.mainButton.addMouseListener(new MouseAdapter() {
-	    public void mouseUp(MouseEvent e) {
-		SnakePlugin.trace(this.getClass().getName(),
-			"New game creation solicited."); //$NON-NLS-1$
-
-		SnakePlugin.getResourceManager()
-			.getSound(Constants.SOUND_START).play();
-
-		// Restart the game.
-		gameField.stopGame(false);
-		gameField.resetGame();
-		gameField.createGameField();
-		// pauseAction.setIsGamePaused(false);
-		setFocus();
-	    }
-	});
-
 	Label button = new Label(parent, SWT.NONE);
-	GridData gd = new GridData(SWT.RIGHT, SWT.CENTER, false, false);
-	gd.widthHint = 48;
-	gd.heightHint = 48;
-	button.setLayoutData(gd);
-	Bundle bundle = Platform.getBundle("com.genuitec.piplug.app.snake");
-	URL url = bundle.getEntry("icons/icon-close48.png");
+	gridData = new GridData(SWT.RIGHT, SWT.CENTER, false, false);
+	gridData.widthHint = 48;
+	gridData.heightHint = 48;
+	button.setLayoutData(gridData);
+	url = bundle.getEntry("icons/icon-close48.png");
 	button.setImage(ImageDescriptor.createFromURL(url).createImage());
 	button.addMouseListener(new GoHomeListener());
 	button.setBackground(parent.getBackground());
@@ -444,6 +447,7 @@ public class MainView {
 	gridData.verticalAlignment = GridData.FILL;
 	gridData.grabExcessHorizontalSpace = true;
 	gridData.grabExcessVerticalSpace = true;
+
 	// SWT.NO_BACKGROUND is used for Double Buffering.
 	gameField = new GameField(parent, SWT.BORDER | SWT.NO_BACKGROUND, this);
 	gameField.setLayoutData(gridData);

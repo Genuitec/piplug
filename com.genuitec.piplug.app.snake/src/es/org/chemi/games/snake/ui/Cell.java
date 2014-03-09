@@ -45,11 +45,10 @@ public class Cell {
 	SnakePlugin.trace(this.getClass().getName(),
 		"Refreshing cell [" + x + "][" + y + "]."); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 
+	gc.fillRectangle(this.x, this.y, Constants.CELL_SIZE,
+		Constants.CELL_SIZE);
 	if (image != null)
 	    gc.drawImage(image, this.x, this.y);
-	else
-	    gc.fillRectangle(this.x, this.y, Constants.CELL_SIZE,
-		    Constants.CELL_SIZE);
     }
 
     /**

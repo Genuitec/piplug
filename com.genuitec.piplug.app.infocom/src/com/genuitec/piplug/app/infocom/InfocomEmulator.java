@@ -50,7 +50,10 @@ public abstract class InfocomEmulator implements IPiPlugApplication {
 
     @Override
     public void suspend(IPiPlugServices services) {
-	engine.stop();
+	if (engine != null) {
+	    engine.stop();
+	    engine = null;
+	}
     }
 
     @Override
