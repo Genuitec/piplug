@@ -47,36 +47,43 @@
 <h2>
 <a name="getting-started" class="anchor" href="#getting-started"><span class="octicon octicon-link"></span></a>Getting Started</h2>
 
-<p>To get started, you will first install the PiView plug-in into your Eclipse IDE.</p>
+<h4>To get started, you will first install the PiView plug-in into your Eclipse IDE.</h4>
 
 <ol>
-<li>Go to Help : Add/Remove Software </li>
-<li>Install from site : <a href="http://genuitec.github.com/piplug/updatesite">http://genuitec.github.com/piplug/updatesite</a>
+<li><p>Go to Help : Add/Remove Software</p></li>
+<li><p>Copy and paste this site into the dialog:</p>
+<pre><code>http://genuitec.github.com/piplug/updatesite</code></pre>
 </li>
-<li>Choose to install the PiPlug view into your Eclipse</li>
-<li>Use Window : Show View : Other : PiPlug Deploy to add app management</li>
-<li>Check out Example applications from GitHub git@github.com:Genuitec/piplug-apps.git</li>
-<li>Import the projects into your workspace</li>
-<li>Choose which examples to deploy, and use the Deploy option in the PiPlug Deploy view</li>
-</ol><p>Next, you will install PiPlug on your actual Raspberry Pi.</p>
+<li><p>Choose to install the PiPlug view into your Eclipse</p></li>
+<li><p>Use Window : Show View : Other : <b>PiPlug Deploy<b> to add app management</p></li>
+<li><p>Check out Example applications from GitHub:</p>
+<pre><code>git clone git@github.com:Genuitec/piplug-apps.git</code></pre>
+<li><p>Import the projects into your workspace</p></li>
+<li><p>Choose which examples to deploy, and use the <b>Deploy</b> option in the PiPlug Deploy view</p></li>
+</ol>
+
+<h4>Next, you will install PiPlug on your actual Raspberry Pi.</h4>
 
 <ol>
 <li>
 <p>On your Pi, install needed modules:</p>
-
-<pre><code>sudo apt-get install binfmt-support gnome-mime-data libbonobo2-0 libbonobo2-common libbonoboui2-0 \
-libbonoboui2-common libcanberra0 libfam0 libgnome2-0 libgnome2-common libgnomecanvas2-0 \
-libgnomecanvas2-common libgnomeui-0 libgnomeui-common libgnomevfs2-0 libgnomevfs2-common \
-libgnomevfs2-extra libice-dev libidl0 libnspr4 libnss3 libnss3-1d liborbit2 libpthread-stubs0 \
-libpthread-stubs0-dev libsm-dev libswt-cairo-gtk-3-jni libswt-gtk-3-jni libswt-webkit-gtk-3-jni \
-libx11-dev libx11-doc libxau-dev libxcb1-dev libxdmcp-dev libxt-dev ttf-dejavu-extra \
-x11proto-core-dev x11proto-input-dev x11proto-kb-dev xorg-sgml-doctools xtrans-dev libgtk2.0-dev \
-libxtst-dev libgl1-mesa-dev libglu1-mesa-dev
+<pre><code>
+sudo apt-get install binfmt-support gnome-mime-data libbonobo2-0 \
+  libbonobo2-common libbonoboui2-0 libbonoboui2-common libcanberra0 \
+  libfam0 libgnome2-0 libgnome2-common libgnomecanvas2-0 \
+  libgnomecanvas2-common libgnomeui-0 libgnomeui-common \
+  libgnomevfs2-0 libgnomevfs2-common libgnomevfs2-extra libice-dev \
+  libidl0 libnspr4 libnss3 libnss3-1d liborbit2 libpthread-stubs0 \
+  libpthread-stubs0-dev libsm-dev libswt-cairo-gtk-3-jni \
+  libswt-gtk-3-jni libswt-webkit-gtk-3-jni libx11-dev libx11-doc \
+  libxau-dev libxcb1-dev libxdmcp-dev libxt-dev ttf-dejavu-extra \
+  x11proto-core-dev x11proto-input-dev x11proto-kb-dev \
+  xorg-sgml-doctools xtrans-dev libgtk2.0-dev libxtst-dev \
+  libgl1-mesa-dev libglu1-mesa-dev
 </code></pre>
 </li>
 <li>
 <p>Install the latest Java 8 runtime (check version at <a href="https://jdk8.java.net/download.html):">https://jdk8.java.net/download.html):</a></p>
-
 <pre><code>wget --no-check-certificate
 http://www.java.net/download/jdk8/archive/b124/binaries/jdk-8-ea-b124-linux-arm-vfp-hflt-17_jan_2014.tar.gz
 cd /opt
@@ -87,7 +94,6 @@ java -version
 </li>
 <li>
 <p>Confirm that Java 8 is activated as default (running java -version), if not:</p>
-
 <pre><code>cd /usr/bin
 sudo rm java
 sudo ln -s /opt/jdk1.8.0/bin/java java
@@ -95,7 +101,6 @@ sudo ln -s /opt/jdk1.8.0/bin/java java
 </li>
 <li>
 <p>Download the latest PiPlug front-end from GitHub:</p>
-
 <pre><code>wget http://PATH-TO-LATEST-PIPLUG-FRONTEND.tgz
 tar -xvzf piplug-frontend.tgz
 </code></pre>
