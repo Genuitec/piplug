@@ -101,7 +101,7 @@ public class PiPlugDashboardComposite extends Composite {
 	buttonsArea = new Composite(this, SWT.NONE);
 	buttonsArea.setBackground(theme.getBackgroundColor());
 	buttonsAreaLayout = new GridLayout(1, false);
-	buttonsAreaLayout.marginWidth = layout.marginHeight = 0;
+	buttonsAreaLayout.marginWidth = buttonsAreaLayout.marginHeight = 0;
 	buttonsAreaLayout.horizontalSpacing = 40;
 	buttonsAreaLayout.verticalSpacing = 40;
 	buttonsArea.setLayout(buttonsAreaLayout);
