@@ -127,12 +127,25 @@ public class PiPlugDashboardComposite extends Composite {
 
     private boolean updateButtonsLayout(
 	    Map<BundleDescriptor, IPiPlugApplication> applications) {
-	int newColumns = Math.min(4, applications.size());
+	int maxColumns = getMaximumColumns();
+	int newColumns = Math.min(maxColumns, applications.size());
 	if (newColumns == buttonsAreaLayout.numColumns)
 	    return false;
 	buttonsAreaLayout.numColumns = newColumns;
 	buttonsAreaGD.widthHint = (newColumns * 256) + ((newColumns - 1) * 40);
 	return true;
+    }
+
+    private int getMaximumColumns() {
+	int maxColumns;
+	int shellWidth = getShell().getBounds().width;
+	if (shellWidth > 1800)
+	    maxColumns = 5;
+	else if (shellWidth > 1200)
+	    maxColumns = 4;
+	else
+	    maxColumns = 3;
+	return maxColumns;
     }
 
     private void sortApps() {
