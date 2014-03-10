@@ -27,23 +27,39 @@ To get started, you will first install the PiView plug-in into your Eclipse IDE.
 Next, you will install PiPlug on your actual Raspberry Pi.
 
 1. On your Pi, install needed modules:
-  > sudo apt-get install binfmt-support gnome-mime-data libbonobo2-0 libbonobo2-common libbonoboui2-0 libbonoboui2-common libcanberra0 libfam0 libgnome2-0 libgnome2-common libgnomecanvas2-0 libgnomecanvas2-common libgnomeui-0 libgnomeui-common libgnomevfs2-0 libgnomevfs2-common libgnomevfs2-extra libice-dev libidl0 libnspr4 libnss3 libnss3-1d liborbit2 libpthread-stubs0 libpthread-stubs0-dev libsm-dev libswt-cairo-gtk-3-jni libswt-gtk-3-jni libswt-webkit-gtk-3-jni libx11-dev libx11-doc libxau-dev libxcb1-dev libxdmcp-dev libxt-dev ttf-dejavu-extra x11proto-core-dev x11proto-input-dev x11proto-kb-dev xorg-sgml-doctools xtrans-dev libgtk2.0-dev libxtst-dev libgl1-mesa-dev libglu1-mesa-dev
+
+        sudo apt-get install binfmt-support gnome-mime-data libbonobo2-0 libbonobo2-common libbonoboui2-0 \
+        libbonoboui2-common libcanberra0 libfam0 libgnome2-0 libgnome2-common libgnomecanvas2-0 \
+        libgnomecanvas2-common libgnomeui-0 libgnomeui-common libgnomevfs2-0 libgnomevfs2-common \
+        libgnomevfs2-extra libice-dev libidl0 libnspr4 libnss3 libnss3-1d liborbit2 libpthread-stubs0 \
+        libpthread-stubs0-dev libsm-dev libswt-cairo-gtk-3-jni libswt-gtk-3-jni libswt-webkit-gtk-3-jni \
+        libx11-dev libx11-doc libxau-dev libxcb1-dev libxdmcp-dev libxt-dev ttf-dejavu-extra \
+        x11proto-core-dev x11proto-input-dev x11proto-kb-dev xorg-sgml-doctools xtrans-dev libgtk2.0-dev \
+        libxtst-dev libgl1-mesa-dev libglu1-mesa-dev
+
 2. Install the latest Java 8 runtime (check version at https://jdk8.java.net/download.html):
-  > wget --no-check-certificate
-  > http://www.java.net/download/jdk8/archive/b124/binaries/jdk-8-ea-b124-linux-arm-vfp-hflt-17_jan_2014.tar.gz
-  > cd /opt
-  > sudo tar zxvf jdk-8-ea-b124-linux-arm-vfp-hflt-17_jan_2014.tar.gz
-  > sudo update-alternatives --install "/usr/bin/java" "java" "/opt/jdk1.8.0/bin/java" 1
-  > java -version
+
+        wget --no-check-certificate
+        http://www.java.net/download/jdk8/archive/b124/binaries/jdk-8-ea-b124-linux-arm-vfp-hflt-17_jan_2014.tar.gz
+        cd /opt
+        sudo tar zxvf jdk-8-ea-b124-linux-arm-vfp-hflt-17_jan_2014.tar.gz
+        sudo update-alternatives --install "/usr/bin/java" "java" "/opt/jdk1.8.0/bin/java" 1
+        java -version
+        
 3. Confirm that Java 8 is activated as default (running java -version), if not:
-  > cd /usr/bin
-  > sudo rm java
-  > sudo ln -s /opt/jdk1.8.0/bin/java java
+
+        cd /usr/bin
+        sudo rm java
+        sudo ln -s /opt/jdk1.8.0/bin/java java
+        
 4. Download the latest PiPlug front-end from GitHub:
-  > wget http://PATH-TO-LATEST-PIPLUG-FRONTEND.tgz
-  > tar -xvzf piplug-frontend.tgz
+
+        wget http://PATH-TO-LATEST-PIPLUG-FRONTEND.tgz
+        tar -xvzf piplug-frontend.tgz
+        
 5. Run the PiPlug front-end!
-  > piplug-frontend/piplug
+
+        piplug-frontend/piplug
 
 Example Applications
 --------------------
