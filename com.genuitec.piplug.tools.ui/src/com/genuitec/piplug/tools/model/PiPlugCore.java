@@ -1,5 +1,7 @@
 package com.genuitec.piplug.tools.model;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -7,6 +9,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -29,7 +33,9 @@ import org.eclipse.pde.internal.core.PluginModelDelta;
 import com.genuitec.piplug.client.BundleDescriptor;
 import com.genuitec.piplug.client.BundleDescriptors;
 import com.genuitec.piplug.client.PiPlugClient;
+import com.genuitec.piplug.daemon.PiPlugDaemon;
 import com.genuitec.piplug.tools.model.internal.ClientSyncJob;
+import com.genuitec.piplug.tools.ui.Activator;
 
 @SuppressWarnings("restriction")
 public class PiPlugCore {
@@ -113,6 +119,8 @@ public class PiPlugCore {
 	private BundleDescriptors remoteBundleDescriptors;
 	private Set<IPiPlugBundleListener> listeners = new HashSet<IPiPlugBundleListener>();
 	private PiPlugClient client;
+	private PiPlugDaemon localDaemon;
+	private CoreException daemonException;
 
 	public static PiPlugCore getInstance() {
 		return instance;
@@ -320,7 +328,8 @@ public class PiPlugCore {
 		} else {
 			Map<BundleDescriptor, BundleDescriptor> toReHash = new HashMap<BundleDescriptor, BundleDescriptor>();
 			for (BundleDescriptor localDescriptor : localBundles.keySet()) {
-				for (BundleDescriptor remoteDescriptor : remoteBundleDescriptors.getDescriptors()) {
+				for (BundleDescriptor remoteDescriptor : remoteBundleDescriptors
+						.getDescriptors()) {
 					if (localDescriptor.matchesID(remoteDescriptor)) {
 						toReHash.put(localDescriptor, remoteDescriptor);
 					}
@@ -337,5 +346,56 @@ public class PiPlugCore {
 				fireBundleEvent(bundle, ListenerEventFlag.CHANGED);
 			}
 		}
+	}
+
+	public synchronized void startDaemonLocally() {
+		// It's already running but we're having communications issues.
+		// Let's just stop the old one and start a new one.
+		if (daemonException != null) {
+			daemonException = null;
+		}
+		if (localDaemon != null) {
+			localDaemon.stop();
+			localDaemon = null;
+		}
+		IPath stateLocation = Activator.getDefault().getStateLocation();
+		IPath storage = stateLocation.append("daemon-storage");
+		File storageLocation = storage.toFile();
+		storageLocation.mkdirs();
+		boolean debug = "true".equals(System.getProperty("daemon.debug"));
+		PiPlugDaemon daemon = new PiPlugDaemon(storageLocation, debug);
+		try {
+			daemon.start();
+			synchronized (this) {
+				this.localDaemon = daemon;
+				notifyAll();
+			}
+		} catch (IOException e) {
+			synchronized (this) {
+				daemonException = new CoreException(new Status(IStatus.OK,
+						Activator.PLUGIN_ID, "Could not start a local daemon",
+						e));
+				notifyAll();
+			}
+			Activator.getDefault().getLog().log(daemonException.getStatus());
+		}
+	}
+
+	public void waitForDaemon() throws CoreException {
+		if (localDaemon != null)
+			return;
+		if (daemonException != null)
+			throw daemonException;
+		synchronized (this) {
+			while (localDaemon == null && daemonException == null) {
+				try {
+					wait();
+				} catch (InterruptedException e) {
+					// ignore
+				}
+			}
+		}
+		if (daemonException != null)
+			throw daemonException;
 	}
 }

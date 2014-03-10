@@ -10,6 +10,7 @@ Require-Bundle: org.eclipse.ui,
  org.eclipse.core.resources,
  org.eclipse.pde.core,
  org.eclipse.ui.ide,
- com.genuitec.piplug.client
+ com.genuitec.piplug.client,
+ com.genuitec.piplug.daemon
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Bundle-ActivationPolicy: lazy

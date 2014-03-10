@@ -10,6 +10,7 @@ import java.util.Set;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.MultiStatus;
 import org.eclipse.core.runtime.Status;
@@ -30,28 +31,31 @@ import com.genuitec.piplug.tools.model.PiPlugExtension;
 import com.genuitec.piplug.tools.ui.Activator;
 
 @SuppressWarnings("restriction")
-public class DeployOperation {
+public class DeployOperation extends PiPlugOperation {
 
 	private Set<PiPlugExtension> extensions;
 
 	public DeployOperation(Set<PiPlugExtension> extensions) {
+		super("Deploying applications");
 		this.extensions = extensions;
 	}
 
-	public void run() {
-		buildPlugins();
-	}
-
-	private void buildPlugins() {
+	@Override
+	protected IStatus doRun(final IProgressMonitor monitor) {
 		final Set<PiPlugBundle> sourceBundles = new HashSet<PiPlugBundle>();
 		final Set<PiPlugBundle> binaryBundles = new HashSet<PiPlugBundle>();
 		bucketSelectedExtensions(sourceBundles, binaryBundles);
+
+		monitor.beginTask("Deploying applications", sourceBundles.size() * 2
+				+ binaryBundles.size());
+
 		final FeatureExportInfo info;
 		try {
 			info = createExportInfo(sourceBundles);
 		} catch (IOException e) {
 			e.printStackTrace();
-			return;
+			monitor.done();
+			return Status.OK_STATUS;
 		}
 
 		final PluginExportOperation job = new PluginExportOperation(info,
@@ -60,6 +64,7 @@ public class DeployOperation {
 		job.setRule(ResourcesPlugin.getWorkspace().getRoot());
 		job.addJobChangeListener(new JobChangeAdapter() {
 			public void done(IJobChangeEvent event) {
+				monitor.worked(sourceBundles.size());
 				if (job.hasAntErrors()) {
 					// If there were errors when running the ant scripts, inform
 					// the user where the logs can be found.
@@ -69,19 +74,34 @@ public class DeployOperation {
 						reportExportError(logLocation);
 					} else {
 						reportError(
+								"Deploy Error",
 								"An unexpected error occurred during the build phase of deployment.",
 								job.getResult());
 					}
 				} else if (event.getResult().isOK()) {
-					deployBundles(info, sourceBundles, binaryBundles);
+					deployBundles(info, sourceBundles, binaryBundles, monitor);
 				}
 			}
 		});
 		job.schedule();
+		try {
+			job.join();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally {
+			monitor.done();
+		}
+
+		return Status.OK_STATUS;
 	}
 
 	protected void deployBundles(FeatureExportInfo info,
-			Set<PiPlugBundle> sourceBundles, Set<PiPlugBundle> binaryBundles) {
+			Set<PiPlugBundle> sourceBundles, Set<PiPlugBundle> binaryBundles,
+			IProgressMonitor monitor) {
+		if (monitor.isCanceled())
+			return;
+		monitor.subTask("Uploading applications");
 		File exportDir = new File(info.destinationDirectory);
 		File pluginsDir = new File(exportDir, "plugins");
 
@@ -91,6 +111,7 @@ public class DeployOperation {
 			serverAddress = client.discoverServer(30000);
 		} catch (CoreException e) {
 			reportError(
+					"Deploy Error",
 					"Could not discover the PiPlug Daemon.\n\nAre you sure you have one running on your local network?",
 					e.getStatus());
 			return;
@@ -100,6 +121,7 @@ public class DeployOperation {
 			client.connectTo(serverAddress);
 		} catch (CoreException e) {
 			reportError(
+					"Deploy Error",
 					"Could not connect to the PiPlug Daemon.\n\nAre you sure you have one running on your local network?",
 					e.getStatus());
 			return;
@@ -108,10 +130,13 @@ public class DeployOperation {
 		MultiStatus status = new MultiStatus(Activator.PLUGIN_ID, 42,
 				"Deployment of bundles report", null);
 
+		monitor.beginTask("Deploying applications", sourceBundles.size()
+				+ binaryBundles.size());
 		try {
-			deployBuiltBundles(sourceBundles, pluginsDir, client, status);
-			deployBinaryBundles(binaryBundles, client, status);
-			
+			deployBuiltBundles(sourceBundles, pluginsDir, client, status,
+					monitor);
+			deployBinaryBundles(binaryBundles, client, status, monitor);
+
 			try {
 				client.notifyClients();
 			} catch (CoreException ce) {
@@ -122,7 +147,7 @@ public class DeployOperation {
 				if (PiPlugCore.isDebug())
 					Activator.getDefault().getLog().log(status);
 			} else {
-				reportError(
+				reportError("Deploy Error",
 						"Errors occured during the upload phase of deployment",
 						status);
 			}
@@ -141,15 +166,18 @@ public class DeployOperation {
 	}
 
 	private void deployBinaryBundles(Set<PiPlugBundle> binaryBundles,
-			PiPlugClient client, MultiStatus status) {
+			PiPlugClient client, MultiStatus status, IProgressMonitor monitor) {
 		// TODO Auto-generated method stub
 
 	}
 
-	private void deployBuiltBundles(Set<PiPlugBundle> sourceBundles, File pluginsDir, PiPlugClient client,
-			MultiStatus status) {
+	private void deployBuiltBundles(Set<PiPlugBundle> sourceBundles,
+			File pluginsDir, PiPlugClient client, MultiStatus status,
+			IProgressMonitor monitor) {
 		File[] plugins = pluginsDir.listFiles();
 		for (File file : plugins) {
+			if (monitor.isCanceled())
+				return;
 			String nameAndVersion = file.getName();
 			int underscoreIndex = nameAndVersion.indexOf('_');
 			int dotIndex = nameAndVersion.lastIndexOf('.');
@@ -179,6 +207,7 @@ public class DeployOperation {
 				status.add(new Status(IStatus.ERROR, Activator.PLUGIN_ID,
 						"Failed to deploy " + descriptor, e));
 			}
+			monitor.worked(1);
 		}
 	}
 
@@ -200,8 +229,8 @@ public class DeployOperation {
 		}
 	}
 
-	private FeatureExportInfo createExportInfo(
-			Set<PiPlugBundle> sourceBundles) throws IOException {
+	private FeatureExportInfo createExportInfo(Set<PiPlugBundle> sourceBundles)
+			throws IOException {
 		File exportDir = File.createTempFile("piplug-deploy-", ".d");
 		exportDir.delete();
 
@@ -230,14 +259,6 @@ public class DeployOperation {
 			}
 		}
 		return result.toArray();
-	}
-
-	protected void reportError(final String message, final IStatus status) {
-		PlatformUI.getWorkbench().getDisplay().syncExec(new Runnable() {
-			public void run() {
-				ErrorDialog.openError(null, "Deploy Error", message, status);
-			}
-		});
 	}
 
 	protected void reportExportError(final File logLocation) {

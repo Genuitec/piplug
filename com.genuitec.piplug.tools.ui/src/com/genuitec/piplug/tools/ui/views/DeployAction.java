@@ -15,7 +15,7 @@ public class DeployAction extends ExtensionSelectionListenerAction {
 	}
 
 	public void run() {
-		new DeployOperation(getSelectedExtensions()).run();
+		new DeployOperation(getSelectedExtensions()).schedule();
 	}
 
 }

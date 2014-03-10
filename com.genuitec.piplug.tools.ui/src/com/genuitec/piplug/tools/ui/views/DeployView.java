@@ -36,7 +36,7 @@ public class DeployView extends ViewPart {
 
 	private List<TableViewerColumn> columns;
 
-	private RemoveAction removeAction;
+	private UndeployAction removeAction;
 
 	// required for extension point
 	public DeployView() {
@@ -145,7 +145,7 @@ public class DeployView extends ViewPart {
 	private void makeActions() {
 		deployAction = new DeployAction(getSite());
 		runLocallyAction = new RunLocallyAction(getSite());
-		removeAction = new RemoveAction(getSite());
+		removeAction = new UndeployAction(getSite());
 	}
 
 	/**
