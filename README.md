@@ -11,7 +11,8 @@ The PiPlug front-end gives you a simple and familiar way to deploy applications 
 
 ![ScreenShot](docs/images/piplug-apphome.png?raw=true)
 
-***
+Getting Started
+---------------
 
 To get started, you will install the PiView plug-in into your Eclipse IDE.
 
@@ -19,4 +20,14 @@ To get started, you will install the PiView plug-in into your Eclipse IDE.
 2. Install from site : http://github.com/Genuitec/piplug/updatesite
 3. Choose to install the PiPlug view into your Eclipse
 4. Use Window : Show View : Other : PiPlug Deploy to add app management
-5. Check out Example applications from GitHub git:github.com/Genuitec/piplug-app.git
+5. Check out Example applications from GitHub git@github.com:Genuitec/piplug-apps.git
+6. Import the projects into your workspace
+
+Example Applications
+--------------------
+
+Other applications in the example include Zork 1, 2 and 3 games from the Infocom Emulator, a Snake game ported from the SWT example games, and a simple Clock.
+
+![ScreenShot](docs/images/piplug-zork2.png?raw=true)
+![ScreenShot](docs/images/piplug-clock.png?raw=true)
+![ScreenShot](docs/images/piplug-snake.png?raw=true)
