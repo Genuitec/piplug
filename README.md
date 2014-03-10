@@ -17,7 +17,7 @@ Getting Started
 To get started, you will first install the PiView plug-in into your Eclipse IDE.
 
 1. Go to Help : Add/Remove Software 
-2. Install from site : http://github.com/Genuitec/piplug/updatesite
+2. Install from site : http://genuitec.github.com/piplug/updatesite
 3. Choose to install the PiPlug view into your Eclipse
 4. Use Window : Show View : Other : PiPlug Deploy to add app management
 5. Check out Example applications from GitHub git@github.com:Genuitec/piplug-apps.git
