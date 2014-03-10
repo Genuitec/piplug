@@ -3,7 +3,6 @@
 
 <product name="PiPlug Front-end" uid="piplug" id="com.genuitec.piplug.ui.product" application="com.genuitec.piplug.ui.app" version="1.0.0.qualifier" useFeatures="false" includeLaunchers="true">
 
-
    <configIni use="default">
    </configIni>
 
@@ -26,17 +25,11 @@ plugins/org.eclipse.equinox.launcher.gtk.linux.arm_1.1.200.dist</programArgsLin>
       </win>
    </launcher>
 
-
    <vm>
    </vm>
 
    <plugins>
       <plugin id="com.genuitec.piplug.api"/>
-      <plugin id="com.genuitec.piplug.app.clock"/>
-      <plugin id="com.genuitec.piplug.app.infocom"/>
-      <plugin id="com.genuitec.piplug.app.infocom.zork1"/>
-      <plugin id="com.genuitec.piplug.app.infocom.zork2"/>
-      <plugin id="com.genuitec.piplug.app.infocom.zork3"/>
       <plugin id="com.genuitec.piplug.client"/>
       <plugin id="com.genuitec.piplug.ui"/>
       <plugin id="org.eclipse.core.commands"/>
