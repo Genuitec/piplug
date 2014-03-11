@@ -9,6 +9,7 @@ import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.IToolBarManager;
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.Separator;
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.resource.ImageRegistry;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.jface.viewers.TableViewerColumn;
@@ -28,6 +29,17 @@ import com.genuitec.piplug.tools.model.IDaemonStateListener;
 import com.genuitec.piplug.tools.model.PiPlugCore;
 
 public class DeployView extends ViewPart implements IDaemonStateListener {
+
+	public class WarnNoDaemonRunnable implements Runnable {
+		@Override
+		public void run() {
+			MessageDialog
+					.openWarning(
+							stackComposite.getShell(),
+							"PiPlug Daemon Error",
+							"A PiPlug Daemon could not be reached on the local network.\n\nSee error log for further details.");
+		}
+	}
 
 	public class SwitchToViewerRunnable implements Runnable {
 		@Override
@@ -74,11 +86,13 @@ public class DeployView extends ViewPart implements IDaemonStateListener {
 		stackComposite.setLayout(stackLayout);
 
 		Composite progressComposite = new Composite(stackComposite, SWT.NONE);
-		progressComposite.setLayout(new GridLayout(1,false));
-		
+		progressComposite.setLayout(new GridLayout(1, false));
+
 		Label progressLabel = new Label(progressComposite, SWT.CENTER);
-		progressLabel.setText("Discovering existing PiPlug Daemon (will start one after timeout)...");
-		progressLabel.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, true, true));
+		progressLabel
+				.setText("Discovering existing PiPlug Daemon (will start one after timeout)...");
+		progressLabel.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, true,
+				true));
 		stackLayout.topControl = progressComposite;
 
 		viewer = new TableViewer(stackComposite, SWT.MULTI | SWT.H_SCROLL
@@ -198,7 +212,9 @@ public class DeployView extends ViewPart implements IDaemonStateListener {
 	@Override
 	public void daemonStateChanged() {
 		if (PiPlugCore.getInstance().hasDaemonConnection()) {
-			stackComposite.getDisplay().syncExec(new SwitchToViewerRunnable());			
+			stackComposite.getDisplay().syncExec(new SwitchToViewerRunnable());
+		} else {
+			stackComposite.getDisplay().syncExec(new WarnNoDaemonRunnable());
 		}
 	}
 }
