@@ -10,7 +10,7 @@
       </category>
       <view
             name="PiPlug Deploy"
-            icon="icons/sample.gif"
+            icon="resources/deploy.gif"
             category="com.genuitec.piplug.tools.ui"
             class="com.genuitec.piplug.tools.ui.views.DeployView"
             id="com.genuitec.piplug.tools.ui.views.PiPlugDeployView">
