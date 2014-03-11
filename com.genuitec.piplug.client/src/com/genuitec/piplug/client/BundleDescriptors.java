@@ -1,7 +1,6 @@
 package com.genuitec.piplug.client;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -32,10 +31,27 @@ public class BundleDescriptors {
 	this.syncTime = syncTime;
     }
 
+    @Override
+    public Object clone() {
+	synchronized (this) {
+	    BundleDescriptors clone = new BundleDescriptors();
+	    clone.setDescriptors(new ArrayList<BundleDescriptor>(descriptors));
+	    clone.setSyncTime(syncTime);
+	    return clone;
+	}
+    }
+
+    public BundleDescriptor matchByIDVersion(BundleDescriptor matchDescriptor) {
+	for (BundleDescriptor candidate : descriptors) {
+	    if (matchDescriptor.matchesIDVersion(candidate)) {
+		return candidate;
+	    }
+	}
+	return null;
+    }
+
     public Set<BundleDescriptor> matchesByIDVersion(
 	    BundleDescriptor... matchDescriptors) {
-	System.out.println("Current descriptors: " + descriptors);
-	System.out.println("Looking for: " + Arrays.toString(matchDescriptors));
 	Set<BundleDescriptor> matches = new HashSet<BundleDescriptor>();
 	for (BundleDescriptor candidate : descriptors) {
 	    for (BundleDescriptor next : matchDescriptors) {
@@ -62,26 +78,11 @@ public class BundleDescriptors {
 	return matches;
     }
 
-    @Override
-    public boolean equals(Object obj) {
-	if (null == obj)
-	    return false;
-	if (this == obj)
-	    return true;
-	if (!(obj instanceof BundleDescriptors))
-	    return false;
-	BundleDescriptors other = (BundleDescriptors) obj;
-	return descriptors.equals(other.descriptors)
-		&& syncTime == other.syncTime;
+    public boolean remove(BundleDescriptor descriptor) {
+	return descriptors.remove(descriptor);
     }
 
-    @Override
-    public int hashCode() {
-	return descriptors.hashCode() + (int) syncTime;
-    }
-
-    public Set<BundleDescriptor> matchesByIDVersion(BundleDescriptors other) {
-	return matchesByIDVersion(other.getDescriptors().toArray(
-		new BundleDescriptor[other.getDescriptors().size()]));
+    public void add(BundleDescriptor descriptor) {
+	descriptors.add(descriptor);
     }
 }

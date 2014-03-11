@@ -1,8 +1,11 @@
 package com.genuitec.piplug.common;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlTransient;
 
 @XmlRootElement(name = "descriptor")
 public class BundleDescriptor {
@@ -12,6 +15,8 @@ public class BundleDescriptor {
     private Date firstAdded;
     private Date lastUpdatedOn;
     private String appName;
+    @XmlTransient
+    private Map<String, Object> data;
 
     public BundleDescriptor() {
 	// default constructor
@@ -107,5 +112,15 @@ public class BundleDescriptor {
     @Override
     public String toString() {
 	return bundleID + "_" + version;
+    }
+
+    public Object getData(String key) {
+	return data.get(key);
+    }
+
+    public void putData(String key, Object data) {
+	if (this.data == null)
+	    data = new HashMap<String, Object>();
+	this.data.put(key, data);
     }
 }

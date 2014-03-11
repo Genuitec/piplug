@@ -17,8 +17,6 @@ import com.genuitec.piplug.tools.ui.Activator;
 
 
 public class PiPlugExtension implements Comparable<PiPlugExtension>{
-
-
 	private String image;
 	private String name;
 	private PiPlugBundle bundle;

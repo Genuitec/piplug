@@ -1,11 +1,9 @@
 package com.genuitec.piplug.tools.model;
 
+import com.genuitec.piplug.client.BundleDescriptors;
+
 public interface IPiPlugBundleListener {
 
-	void bundleAdded(PiPlugBundle bundle);
-
-	void bundleChanged(PiPlugBundle bundle);
-
-	void bundleRemoved(PiPlugBundle bundle);
+	void bundlesChanged(BundleDescriptors localBundleDescriptor, BundleDescriptors remoteBundleDescriptor);
 
 }

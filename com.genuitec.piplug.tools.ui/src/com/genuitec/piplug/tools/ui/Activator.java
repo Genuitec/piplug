@@ -4,6 +4,8 @@ import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
 
+import com.genuitec.piplug.tools.model.PiPlugCore;
+
 /**
  * The activator class controls the plug-in life cycle
  */
@@ -35,6 +37,7 @@ public class Activator extends AbstractUIPlugin {
 	 * @see org.eclipse.ui.plugin.AbstractUIPlugin#stop(org.osgi.framework.BundleContext)
 	 */
 	public void stop(BundleContext context) throws Exception {
+		PiPlugCore.getInstance().shutdown();
 		plugin = null;
 		super.stop(context);
 	}

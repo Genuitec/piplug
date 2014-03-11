@@ -39,6 +39,12 @@ public class FindDaemonJob extends Job {
 			return Status.OK_STATUS;
 		}
 		listener.daemonStateChanged();
+		
+		try {
+			core.getClient().notifyClients();
+		} catch (CoreException e) {
+			e.printStackTrace();
+		}
 		return Status.OK_STATUS;
 	}
 

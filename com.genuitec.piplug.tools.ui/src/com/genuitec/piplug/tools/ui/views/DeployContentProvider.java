@@ -1,6 +1,6 @@
 package com.genuitec.piplug.tools.ui.views;
 
-import java.util.Set;
+import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -9,10 +9,12 @@ import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 
+import com.genuitec.piplug.client.BundleDescriptor;
+import com.genuitec.piplug.client.BundleDescriptors;
 import com.genuitec.piplug.tools.model.IPiPlugBundleListener;
-import com.genuitec.piplug.tools.model.PiPlugExtension;
 import com.genuitec.piplug.tools.model.PiPlugBundle;
 import com.genuitec.piplug.tools.model.PiPlugCore;
+import com.genuitec.piplug.tools.model.PiPlugExtension;
 
 public class DeployContentProvider implements IStructuredContentProvider,
 		IPiPlugBundleListener {
@@ -53,11 +55,13 @@ public class DeployContentProvider implements IStructuredContentProvider,
 	}
 
 	public Object[] getElements(Object parent) {
-		Set<PiPlugBundle> bundles = PiPlugCore.getInstance().getLocalBundles();
-		if (null == bundles)
+		BundleDescriptors localBundleDescriptors = PiPlugCore.getInstance().getLocalBundleDescriptors();
+		List<BundleDescriptor> descriptors = localBundleDescriptors.getDescriptors();
+		if (null == descriptors || descriptors.isEmpty())
 			return new Object[0];
 		SortedSet<PiPlugExtension> extensions = new TreeSet<PiPlugExtension>();
-		for (PiPlugBundle bundle : bundles) {
+		for (BundleDescriptor next : descriptors) {
+			PiPlugBundle bundle = PiPlugCore.getInstance().getBundle(next);
 			SortedSet<PiPlugExtension> bundleExtensions = bundle.getExtensions();
 			if (null != extensions)
 				extensions.addAll(bundleExtensions);
@@ -76,17 +80,8 @@ public class DeployContentProvider implements IStructuredContentProvider,
 	}
 	
 	@Override
-	public void bundleAdded(PiPlugBundle bundle) {
-		refreshViewer();
-	}
-
-	@Override
-	public void bundleChanged(PiPlugBundle bundle) {
-		refreshViewer();
-	}
-
-	@Override
-	public void bundleRemoved(PiPlugBundle bundle) {
+	public void bundlesChanged(BundleDescriptors localBundleDescriptor,
+			BundleDescriptors remoteBundleDescriptor) {
 		refreshViewer();
 	}
 }

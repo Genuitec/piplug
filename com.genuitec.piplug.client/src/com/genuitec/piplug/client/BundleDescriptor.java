@@ -1,8 +1,11 @@
 package com.genuitec.piplug.client;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlTransient;
 
 @XmlRootElement(name = "descriptor")
 public class BundleDescriptor {
@@ -12,10 +15,11 @@ public class BundleDescriptor {
     private Date firstAdded;
     private Date lastUpdatedOn;
     private String appName;
+    @XmlTransient
+    private Map<String, Object> data;
 
-    // default constructor required for jaxb
     public BundleDescriptor() {
-
+	// default constructor
     }
 
     public String getBundleID() {
@@ -50,12 +54,12 @@ public class BundleDescriptor {
 	this.lastUpdatedOn = lastUpdatedOn;
     }
 
-    public void setAppName(String appName) {
-	this.appName = appName;
-    }
-
     public String getAppName() {
 	return appName;
+    }
+
+    public void setAppName(String appName) {
+	this.appName = appName;
     }
 
     /**
@@ -108,5 +112,15 @@ public class BundleDescriptor {
     @Override
     public String toString() {
 	return bundleID + "_" + version;
+    }
+
+    public Object getData(String key) {
+	return data.get(key);
+    }
+
+    public void putData(String key, Object data) {
+	if (this.data == null)
+	    this.data = new HashMap<String, Object>();
+	this.data.put(key, data);
     }
 }

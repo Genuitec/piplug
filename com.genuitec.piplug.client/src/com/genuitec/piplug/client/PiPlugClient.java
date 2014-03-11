@@ -115,7 +115,7 @@ public class PiPlugClient {
 	    jaxb = JAXBContext.newInstance(BundleDescriptors.class);
 	} catch (Exception e) {
 	    throw new IllegalStateException(
-		    "Unable to prepare JAXB context for serialization");
+		    "Unable to prepare JAXB context for serialization", e);
 	}
     }
 

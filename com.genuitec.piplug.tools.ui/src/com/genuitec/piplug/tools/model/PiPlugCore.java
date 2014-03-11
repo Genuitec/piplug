@@ -4,10 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.util.List;
 import java.util.Set;
 
 import org.eclipse.core.runtime.CoreException;
@@ -40,17 +38,13 @@ import com.genuitec.piplug.tools.ui.Activator;
 
 @SuppressWarnings("restriction")
 public class PiPlugCore implements IPiPlugClientListener {
-	public enum ListenerEventFlag {
-		ADDED, CHANGED, REMOVED;
-	}
-
 	public class PiPlugPDEListener implements IPluginModelListener,
 			IExtensionDeltaListener {
 
 		@Override
 		public void modelsChanged(PluginModelDelta delta) {
-			reload(delta.getAddedEntries(), ListenerEventFlag.ADDED);
-			reload(delta.getChangedEntries(), ListenerEventFlag.CHANGED);
+			reload(delta.getAddedEntries());
+			reload(delta.getChangedEntries());
 
 			// Do removals at the end, in case a change & removal is sent
 			ModelEntry[] removed = delta.getRemovedEntries();
@@ -58,16 +52,18 @@ public class PiPlugCore implements IPiPlugClientListener {
 				for (ModelEntry entry : removed) {
 					String pluginId = entry.getId();
 					Set<BundleDescriptor> toRemove = new HashSet<BundleDescriptor>();
-					synchronized (localBundles) {
-						for (BundleDescriptor next : localBundles.keySet()) {
+					synchronized (localBundleDescriptors) {
+						List<BundleDescriptor> descriptors = localBundleDescriptors
+								.getDescriptors();
+						for (BundleDescriptor next : descriptors) {
 							if (pluginId.equals(next.getBundleID())) {
 								toRemove.add(next);
 							}
 						}
-						for (BundleDescriptor bundleIdentity : toRemove) {
-							PiPlugBundle bundle = localBundles
-									.remove(bundleIdentity);
-							fireBundleEvent(bundle, ListenerEventFlag.REMOVED);
+						if (!toRemove.isEmpty()) {
+							localBundleDescriptors.getDescriptors().removeAll(
+									descriptors);
+							fireBundleDescriptorsChanged();
 						}
 					}
 				}
@@ -96,20 +92,24 @@ public class PiPlugCore implements IPiPlugClientListener {
 		protected IStatus run(IProgressMonitor monitor) {
 			IPluginModelBase[] added = event.getAddedModels();
 			if (null != added && added.length > 0)
-				reload(added, ListenerEventFlag.ADDED);
+				reload(added);
 
 			IPluginModelBase[] changed = event.getChangedModels();
 			if (null != changed && changed.length > 0)
-				reload(changed, ListenerEventFlag.CHANGED);
+				reload(changed);
 
 			// Do removals at the end, in case a change & removal is sent
 			IPluginModelBase[] removed = event.getRemovedModels();
 			if (null != removed && removed.length > 0) {
+				boolean didRemoval = false;
 				for (IPluginModelBase plugin : removed) {
-					PiPlugBundle bundle = localBundles.remove(PiPlugCore
-							.fromPluginModelBase(plugin));
-					fireBundleEvent(bundle, ListenerEventFlag.REMOVED);
+					BundleDescriptor descriptor = PiPlugCore
+							.fromPluginModelBase(plugin);
+					localBundleDescriptors.getDescriptors().remove(descriptor);
+					didRemoval = true;
 				}
+				if (didRemoval)
+					fireBundleDescriptorsChanged();
 			}
 			return Status.OK_STATUS;
 		}
@@ -118,7 +118,9 @@ public class PiPlugCore implements IPiPlugClientListener {
 	private static final int DISCOVER_TIMEOUT = 30000;
 
 	private static final PiPlugCore instance = new PiPlugCore();
-	private Map<BundleDescriptor, PiPlugBundle> localBundles = new HashMap<BundleDescriptor, PiPlugBundle>();
+
+	private static final String KEY_BUNDLE = "key.bundle";
+	private BundleDescriptors localBundleDescriptors;
 	private BundleDescriptors remoteBundleDescriptors;
 	private Set<IPiPlugBundleListener> listeners = new HashSet<IPiPlugBundleListener>();
 	private PiPlugClient client;
@@ -137,28 +139,32 @@ public class PiPlugCore implements IPiPlugClientListener {
 		listeners.remove(listener);
 	}
 
-	protected void reload(ModelEntry[] modelEntries,
-			ListenerEventFlag listenerFlag) {
+	protected void reload(ModelEntry[] modelEntries) {
 		if (null == modelEntries || modelEntries.length == 0)
 			return;
 
 		for (ModelEntry entry : modelEntries) {
-			reload(entry.getActiveModels(), listenerFlag);
+			reload(entry.getActiveModels());
 		}
 	}
 
-	private void reload(IPluginModelBase[] plugins,
-			ListenerEventFlag listenerFlag) {
+	private void reload(IPluginModelBase[] plugins) {
 		if (null == plugins)
 			return;
+		boolean changed = false;
 		for (IPluginModelBase plugin : plugins) {
 			PiPlugBundle bundle = createPiPlugBundle(plugin);
 			if (null == bundle)
 				continue;
 
-			localBundles.put(PiPlugCore.fromPluginModelBase(plugin), bundle);
-			fireBundleEvent(bundle, listenerFlag);
+			BundleDescriptor descriptor = PiPlugCore
+					.fromPluginModelBase(plugin);
+			descriptor.putData(KEY_BUNDLE, bundle);
+			localBundleDescriptors.getDescriptors().add(descriptor);
+			changed = true;
 		}
+		if (changed)
+			fireBundleDescriptorsChanged();
 	}
 
 	private PiPlugBundle createPiPlugBundle(IPluginModelBase plugin) {
@@ -193,24 +199,12 @@ public class PiPlugCore implements IPiPlugClientListener {
 		return bundle;
 	}
 
-	private void fireBundleEvent(PiPlugBundle bundle,
-			ListenerEventFlag listenerFlag) {
-		if (null == bundle)
-			return;
+	private void fireBundleDescriptorsChanged() {
 		if (listeners.isEmpty())
 			return;
 		for (IPiPlugBundleListener listener : listeners) {
-			switch (listenerFlag) {
-			case ADDED:
-				listener.bundleAdded(bundle);
-				break;
-			case CHANGED:
-				listener.bundleChanged(bundle);
-				break;
-			case REMOVED:
-				listener.bundleRemoved(bundle);
-				break;
-			}
+			listener.bundlesChanged(localBundleDescriptors,
+					remoteBundleDescriptors);
 		}
 	}
 
@@ -279,7 +273,7 @@ public class PiPlugCore implements IPiPlugClientListener {
 	}
 
 	private void initialize() {
-		localBundles = new HashMap<BundleDescriptor, PiPlugBundle>();
+		localBundleDescriptors = new BundleDescriptors();
 
 		PDEExtensionRegistry extensionsRegistry = PDECore.getDefault()
 				.getExtensionsRegistry();
@@ -300,12 +294,16 @@ public class PiPlugCore implements IPiPlugClientListener {
 			if (null == bundle)
 				continue;
 
-			localBundles.put(bundle.getDescriptor(), bundle);
+			BundleDescriptor descriptor = bundle.getDescriptor();
+			descriptor.putData(KEY_BUNDLE, bundle);
+			localBundleDescriptors.getDescriptors().add(descriptor);
 		}
 	}
 
-	public Set<PiPlugBundle> getLocalBundles() {
-		return new HashSet<PiPlugBundle>(localBundles.values());
+	public BundleDescriptors getLocalBundleDescriptors() {
+		synchronized (localBundleDescriptors) {
+			return (BundleDescriptors) localBundleDescriptors.clone();
+		}
 	}
 
 	public static BundleDescriptor fromPluginModelBase(IPluginModelBase plugin) {
@@ -322,40 +320,41 @@ public class PiPlugCore implements IPiPlugClientListener {
 
 	public void setRemoteBundleDescriptors(BundleDescriptors bundles) {
 		this.remoteBundleDescriptors = bundles;
-		assignNewDescriptors();
+		fireBundleDescriptorsChanged();
 	}
 
-	private void assignNewDescriptors() {
-		Map<BundleDescriptor, BundleDescriptor> toReHash = new HashMap<BundleDescriptor, BundleDescriptor>();
-		Set<BundleDescriptor> theUndeployed = new HashSet<BundleDescriptor>(
-				localBundles.keySet());
-		for (BundleDescriptor localDescriptor : localBundles.keySet()) {
-			for (BundleDescriptor remoteDescriptor : remoteBundleDescriptors
-					.getDescriptors()) {
-				if (localDescriptor.matchesID(remoteDescriptor)) {
-					toReHash.put(localDescriptor, remoteDescriptor);
-					theUndeployed.remove(localDescriptor);
-				}
-			}
-		}
-
-		for (BundleDescriptor bundleDescriptor : theUndeployed) {
-			bundleDescriptor.setFirstAdded(null);
-			bundleDescriptor.setLastUpdatedOn(null);
-			fireBundleEvent(localBundles.get(bundleDescriptor),
-					ListenerEventFlag.CHANGED);
-		}
-
-		for (Entry<BundleDescriptor, BundleDescriptor> next : toReHash
-				.entrySet()) {
-			BundleDescriptor localDescriptor = next.getKey();
-			PiPlugBundle bundle = localBundles.remove(localDescriptor);
-			BundleDescriptor remoteDescriptor = next.getValue();
-			bundle.setDescriptor(remoteDescriptor);
-			localBundles.put(remoteDescriptor, bundle);
-			fireBundleEvent(bundle, ListenerEventFlag.CHANGED);
-		}
-	}
+	// private void assignNewDescriptors() {
+	// Map<BundleDescriptor, BundleDescriptor> toReHash = new
+	// HashMap<BundleDescriptor, BundleDescriptor>();
+	// Set<BundleDescriptor> theUndeployed = new HashSet<BundleDescriptor>(
+	// localBundles.keySet());
+	// for (BundleDescriptor localDescriptor : localBundles.keySet()) {
+	// for (BundleDescriptor remoteDescriptor : remoteBundleDescriptors
+	// .getDescriptors()) {
+	// if (localDescriptor.matchesID(remoteDescriptor)) {
+	// toReHash.put(localDescriptor, remoteDescriptor);
+	// theUndeployed.remove(localDescriptor);
+	// }
+	// }
+	// }
+	//
+	// for (BundleDescriptor bundleDescriptor : theUndeployed) {
+	// bundleDescriptor.setFirstAdded(null);
+	// bundleDescriptor.setLastUpdatedOn(null);
+	// fireBundleDescriptorsChanged(localBundles.get(bundleDescriptor),
+	// ListenerEventFlag.CHANGED);
+	// }
+	//
+	// for (Entry<BundleDescriptor, BundleDescriptor> next : toReHash
+	// .entrySet()) {
+	// BundleDescriptor localDescriptor = next.getKey();
+	// PiPlugBundle bundle = localBundles.remove(localDescriptor);
+	// BundleDescriptor remoteDescriptor = next.getValue();
+	// bundle.setDescriptor(remoteDescriptor);
+	// localBundles.put(remoteDescriptor, bundle);
+	// fireBundleDescriptorsChanged(bundle, ListenerEventFlag.CHANGED);
+	// }
+	// }
 
 	public synchronized void startDaemonLocally() {
 		// It's already running but we're having communications issues.
@@ -441,5 +440,37 @@ public class PiPlugCore implements IPiPlugClientListener {
 	@Override
 	public void newBundleList(BundleDescriptors descriptors) {
 		setRemoteBundleDescriptors(descriptors);
+	}
+
+	public PiPlugBundle getBundle(BundleDescriptor next) {
+		return (PiPlugBundle) next.getData(KEY_BUNDLE);
+	}
+
+	public BundleDescriptor getRemoteBundleDescriptor(
+			BundleDescriptor localBundleDescriptor) {
+		if (null == localBundleDescriptor)
+			return null;
+		if (null == remoteBundleDescriptors)
+			return null;
+		List<BundleDescriptor> descriptors = remoteBundleDescriptors
+				.getDescriptors();
+		if (null == descriptors)
+			return null;
+		for (BundleDescriptor next : descriptors) {
+			if (localBundleDescriptor.matchesID(next))
+				return next;
+		}
+		return null;
+	}
+
+	public void shutdown() {
+		if (null != client) {
+			try {
+				client.disconnect();
+			} catch (CoreException e) {
+				e.printStackTrace();
+			}
+			client = null;
+		}
 	}
 }

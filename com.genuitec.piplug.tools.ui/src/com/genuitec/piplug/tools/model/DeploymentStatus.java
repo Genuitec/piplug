@@ -13,11 +13,19 @@ public class DeploymentStatus {
 	}
 
 	public DeploymentState getState() {
-		return descriptor.getLastUpdatedOn() == null ? DeploymentState.NOT_DEPLOYED
+		return getDescriptor().getLastUpdatedOn() == null ? DeploymentState.NOT_DEPLOYED
 				: DeploymentState.DEPLOYED;
 	}
 
+	private BundleDescriptor getDescriptor() {
+		BundleDescriptor remoteDescriptor = PiPlugCore.getInstance()
+				.getRemoteBundleDescriptor(descriptor);
+		if (null != remoteDescriptor)
+			return remoteDescriptor;
+		return descriptor;
+	}
+
 	public Date getDate() {
-		return descriptor.getLastUpdatedOn();
+		return getDescriptor().getLastUpdatedOn();
 	}
 }
