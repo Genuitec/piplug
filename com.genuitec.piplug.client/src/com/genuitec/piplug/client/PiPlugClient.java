@@ -349,4 +349,8 @@ public class PiPlugClient {
 	    throw new CoreException(status);
 	}
     }
+
+    public boolean isConnected() {
+	return connectedTo != null;
+    }
 }

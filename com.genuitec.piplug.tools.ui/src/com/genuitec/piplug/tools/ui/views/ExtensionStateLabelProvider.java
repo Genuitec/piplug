@@ -17,8 +17,8 @@ public class ExtensionStateLabelProvider extends
 			PiPlugExtension extension = (PiPlugExtension) element;
 			DeploymentStatus status = extension.getDeploymentStatus();
 			switch (status.getState()) {
-				case NEVER_DEPLOYED:
-					return "Never deployed";
+				case NOT_DEPLOYED:
+					return "Not deployed";
 				case DEPLOYED:
 					return "Deployed on " + format.format(status.getDate());
 			}

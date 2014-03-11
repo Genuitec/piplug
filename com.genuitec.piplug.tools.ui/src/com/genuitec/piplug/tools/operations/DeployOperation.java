@@ -2,7 +2,6 @@ package com.genuitec.piplug.tools.operations;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
@@ -105,37 +104,17 @@ public class DeployOperation extends PiPlugOperation {
 		File exportDir = new File(info.destinationDirectory);
 		File pluginsDir = new File(exportDir, "plugins");
 
-		PiPlugClient client = new PiPlugClient();
-		InetSocketAddress serverAddress;
-		try {
-			serverAddress = client.discoverServer(30000);
-		} catch (CoreException e) {
-			reportError(
-					"Deploy Error",
-					"Could not discover the PiPlug Daemon.\n\nAre you sure you have one running on your local network?",
-					e.getStatus());
-			return;
-		}
-
-		try {
-			client.connectTo(serverAddress);
-		} catch (CoreException e) {
-			reportError(
-					"Deploy Error",
-					"Could not connect to the PiPlug Daemon.\n\nAre you sure you have one running on your local network?",
-					e.getStatus());
-			return;
-		}
-
 		MultiStatus status = new MultiStatus(Activator.PLUGIN_ID, 42,
 				"Deployment of bundles report", null);
 
 		monitor.beginTask("Deploying applications", sourceBundles.size()
 				+ binaryBundles.size());
 		try {
-			deployBuiltBundles(sourceBundles, pluginsDir, client, status,
+			PiPlugClient client = PiPlugCore.getInstance().getClient();
+			deployBuiltBundles(sourceBundles, pluginsDir, client,
+					status, monitor);
+			deployBinaryBundles(binaryBundles, client, status,
 					monitor);
-			deployBinaryBundles(binaryBundles, client, status, monitor);
 
 			try {
 				client.notifyClients();
@@ -151,24 +130,12 @@ public class DeployOperation extends PiPlugOperation {
 						"Errors occured during the upload phase of deployment",
 						status);
 			}
-
-			try {
-				client.disconnect();
-			} catch (CoreException e) {
-				Activator
-						.getDefault()
-						.getLog()
-						.log(new Status(IStatus.WARNING, Activator.PLUGIN_ID,
-								"Could not disconnect from the PiPlug Daemon.",
-								e));
-			}
 		}
 	}
 
 	private void deployBinaryBundles(Set<PiPlugBundle> binaryBundles,
 			PiPlugClient client, MultiStatus status, IProgressMonitor monitor) {
 		// TODO Auto-generated method stub
-
 	}
 
 	private void deployBuiltBundles(Set<PiPlugBundle> sourceBundles,

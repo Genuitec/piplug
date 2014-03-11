@@ -13,14 +13,34 @@ import org.eclipse.jface.resource.ImageRegistry;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.jface.viewers.TableViewerColumn;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.StackLayout;
+import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.ui.IActionBars;
 import org.eclipse.ui.IWorkbenchActionConstants;
 import org.eclipse.ui.part.ViewPart;
 
-public class DeployView extends ViewPart {
+import com.genuitec.piplug.tools.model.IDaemonStateListener;
+import com.genuitec.piplug.tools.model.PiPlugCore;
+
+public class DeployView extends ViewPart implements IDaemonStateListener {
+
+	public class SwitchToViewerRunnable implements Runnable {
+		@Override
+		public void run() {
+			switchToViewer();
+		}
+	}
+
+	private final class DeployViewMenuListener implements IMenuListener {
+		public void menuAboutToShow(IMenuManager manager) {
+			DeployView.this.fillContextMenu(manager);
+		}
+	}
 
 	public enum AppsViewColumn {
 		APPLICATION, TYPE, BUNDLE, STATE
@@ -30,7 +50,7 @@ public class DeployView extends ViewPart {
 
 	private TableViewer viewer;
 	private Action deployAction;
-//	private Action runLocallyAction;
+	// private Action runLocallyAction;
 
 	private ImageRegistry imageRegistry;
 
@@ -38,13 +58,30 @@ public class DeployView extends ViewPart {
 
 	private UndeployAction removeAction;
 
+	private Composite stackComposite;
+
+	private StackLayout stackLayout;
+
 	// required for extension point
 	public DeployView() {
 	}
 
 	public void createPartControl(Composite parent) {
 		imageRegistry = new ImageRegistry(parent.getDisplay());
-		viewer = new TableViewer(parent, SWT.MULTI | SWT.H_SCROLL
+
+		stackComposite = new Composite(parent, SWT.NONE);
+		stackLayout = new StackLayout();
+		stackComposite.setLayout(stackLayout);
+
+		Composite progressComposite = new Composite(stackComposite, SWT.NONE);
+		progressComposite.setLayout(new GridLayout(1,false));
+		
+		Label progressLabel = new Label(progressComposite, SWT.CENTER);
+		progressLabel.setText("Discovering existing PiPlug Daemon (will start one after timeout)...");
+		progressLabel.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, true, true));
+		stackLayout.topControl = progressComposite;
+
+		viewer = new TableViewer(stackComposite, SWT.MULTI | SWT.H_SCROLL
 				| SWT.V_SCROLL | SWT.FULL_SELECTION);
 		createTableColumns();
 		viewer.setContentProvider(new DeployContentProvider(this));
@@ -59,12 +96,19 @@ public class DeployView extends ViewPart {
 		hookContextMenu();
 		contributeToActionBars();
 
+		PiPlugCore.getInstance().scheduleFindDaemon(this);
+	}
+
+	public void switchToViewer() {
 		viewer.setInput(getViewSite());
+		stackLayout.topControl = viewer.getControl();
+		stackComposite.layout();
 	}
 
 	void packColumns() {
 		for (TableViewerColumn column : columns) {
-			AppsViewColumn viewColumn = (AppsViewColumn) column.getColumn().getData("id");
+			AppsViewColumn viewColumn = (AppsViewColumn) column.getColumn()
+					.getData("id");
 			if (AppsViewColumn.TYPE.equals(viewColumn)) {
 				column.getColumn().pack();
 			}
@@ -76,8 +120,8 @@ public class DeployView extends ViewPart {
 		TableViewerColumn appColumn = new TableViewerColumn(viewer, SWT.NONE);
 		appColumn.getColumn().setWidth(200);
 		appColumn.getColumn().setText("Application");
-		appColumn.setLabelProvider(new ExtensionNameLabelProvider(
-				imageRegistry));
+		appColumn
+				.setLabelProvider(new ExtensionNameLabelProvider(imageRegistry));
 		appColumn.getColumn().setData("id", AppsViewColumn.APPLICATION);
 
 		TableViewerColumn typeColumn = new TableViewerColumn(viewer, SWT.NONE);
@@ -112,11 +156,7 @@ public class DeployView extends ViewPart {
 	private void hookContextMenu() {
 		MenuManager menuMgr = new MenuManager("#PopupMenu");
 		menuMgr.setRemoveAllWhenShown(true);
-		menuMgr.addMenuListener(new IMenuListener() {
-			public void menuAboutToShow(IMenuManager manager) {
-				DeployView.this.fillContextMenu(manager);
-			}
-		});
+		menuMgr.addMenuListener(new DeployViewMenuListener());
 		Menu menu = menuMgr.createContextMenu(viewer.getControl());
 		viewer.getControl().setMenu(menu);
 		getSite().registerContextMenu(menuMgr, viewer);
@@ -129,7 +169,7 @@ public class DeployView extends ViewPart {
 
 	private void fillContextMenu(IMenuManager manager) {
 		manager.add(deployAction);
-//		manager.add(runLocallyAction);
+		// manager.add(runLocallyAction);
 		// Other plug-ins can contribute there actions here
 		manager.add(new Separator(IWorkbenchActionConstants.MB_ADDITIONS));
 		manager.add(new Separator());
@@ -139,12 +179,12 @@ public class DeployView extends ViewPart {
 	private void fillLocalToolBar(IToolBarManager manager) {
 		manager.add(deployAction);
 		manager.add(new Separator());
-//		manager.add(runLocallyAction);
+		// manager.add(runLocallyAction);
 	}
 
 	private void makeActions() {
 		deployAction = new DeployAction(getSite());
-//		runLocallyAction = new RunLocallyAction(getSite());
+		// runLocallyAction = new RunLocallyAction(getSite());
 		removeAction = new UndeployAction(getSite());
 	}
 
@@ -153,5 +193,12 @@ public class DeployView extends ViewPart {
 	 */
 	public void setFocus() {
 		viewer.getControl().setFocus();
+	}
+
+	@Override
+	public void daemonStateChanged() {
+		if (PiPlugCore.getInstance().hasDaemonConnection()) {
+			stackComposite.getDisplay().syncExec(new SwitchToViewerRunnable());			
+		}
 	}
 }

@@ -2,6 +2,7 @@ package com.genuitec.piplug.tools.model;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -32,13 +33,13 @@ import org.eclipse.pde.internal.core.PluginModelDelta;
 
 import com.genuitec.piplug.client.BundleDescriptor;
 import com.genuitec.piplug.client.BundleDescriptors;
+import com.genuitec.piplug.client.IPiPlugClientListener;
 import com.genuitec.piplug.client.PiPlugClient;
 import com.genuitec.piplug.daemon.PiPlugDaemon;
-import com.genuitec.piplug.tools.model.internal.ClientSyncJob;
 import com.genuitec.piplug.tools.ui.Activator;
 
 @SuppressWarnings("restriction")
-public class PiPlugCore {
+public class PiPlugCore implements IPiPlugClientListener {
 	public enum ListenerEventFlag {
 		ADDED, CHANGED, REMOVED;
 	}
@@ -113,6 +114,8 @@ public class PiPlugCore {
 			return Status.OK_STATUS;
 		}
 	}
+
+	private static final int DISCOVER_TIMEOUT = 30000;
 
 	private static final PiPlugCore instance = new PiPlugCore();
 	private Map<BundleDescriptor, PiPlugBundle> localBundles = new HashMap<BundleDescriptor, PiPlugBundle>();
@@ -264,7 +267,7 @@ public class PiPlugCore {
 
 	private void registerClientListener() {
 		client = new PiPlugClient();
-		new ClientSyncJob(client).schedule();
+		client.addListener(this);
 	}
 
 	private void registerWorkspaceListener() {
@@ -323,28 +326,34 @@ public class PiPlugCore {
 	}
 
 	private void assignNewDescriptors() {
-		if (remoteBundleDescriptors == null) {
-			// Null out dates in old descriptors
-		} else {
-			Map<BundleDescriptor, BundleDescriptor> toReHash = new HashMap<BundleDescriptor, BundleDescriptor>();
-			for (BundleDescriptor localDescriptor : localBundles.keySet()) {
-				for (BundleDescriptor remoteDescriptor : remoteBundleDescriptors
-						.getDescriptors()) {
-					if (localDescriptor.matchesID(remoteDescriptor)) {
-						toReHash.put(localDescriptor, remoteDescriptor);
-					}
+		Map<BundleDescriptor, BundleDescriptor> toReHash = new HashMap<BundleDescriptor, BundleDescriptor>();
+		Set<BundleDescriptor> theUndeployed = new HashSet<BundleDescriptor>(
+				localBundles.keySet());
+		for (BundleDescriptor localDescriptor : localBundles.keySet()) {
+			for (BundleDescriptor remoteDescriptor : remoteBundleDescriptors
+					.getDescriptors()) {
+				if (localDescriptor.matchesID(remoteDescriptor)) {
+					toReHash.put(localDescriptor, remoteDescriptor);
+					theUndeployed.remove(localDescriptor);
 				}
 			}
+		}
 
-			for (Entry<BundleDescriptor, BundleDescriptor> next : toReHash
-					.entrySet()) {
-				BundleDescriptor localDescriptor = next.getKey();
-				PiPlugBundle bundle = localBundles.remove(localDescriptor);
-				BundleDescriptor remoteDescriptor = next.getValue();
-				bundle.setDescriptor(remoteDescriptor);
-				localBundles.put(remoteDescriptor, bundle);
-				fireBundleEvent(bundle, ListenerEventFlag.CHANGED);
-			}
+		for (BundleDescriptor bundleDescriptor : theUndeployed) {
+			bundleDescriptor.setFirstAdded(null);
+			bundleDescriptor.setLastUpdatedOn(null);
+			fireBundleEvent(localBundles.get(bundleDescriptor),
+					ListenerEventFlag.CHANGED);
+		}
+
+		for (Entry<BundleDescriptor, BundleDescriptor> next : toReHash
+				.entrySet()) {
+			BundleDescriptor localDescriptor = next.getKey();
+			PiPlugBundle bundle = localBundles.remove(localDescriptor);
+			BundleDescriptor remoteDescriptor = next.getValue();
+			bundle.setDescriptor(remoteDescriptor);
+			localBundles.put(remoteDescriptor, bundle);
+			fireBundleEvent(bundle, ListenerEventFlag.CHANGED);
 		}
 	}
 
@@ -382,12 +391,12 @@ public class PiPlugCore {
 	}
 
 	public void waitForDaemon() throws CoreException {
-		if (localDaemon != null)
+		if (client.isConnected())
 			return;
 		if (daemonException != null)
 			throw daemonException;
 		synchronized (this) {
-			while (localDaemon == null && daemonException == null) {
+			while (!client.isConnected() && daemonException == null) {
 				try {
 					wait();
 				} catch (InterruptedException e) {
@@ -397,5 +406,40 @@ public class PiPlugCore {
 		}
 		if (daemonException != null)
 			throw daemonException;
+	}
+
+	public void scheduleFindDaemon(IDaemonStateListener listener) {
+		new FindDaemonJob(listener).schedule();
+	}
+
+	public boolean hasDaemonConnection() {
+		return client.isConnected();
+	}
+
+	public InetSocketAddress tryToDiscoverDaemon(boolean logError) {
+		try {
+			return client.discoverServer(DISCOVER_TIMEOUT);
+		} catch (CoreException e) {
+			if (logError)
+				Activator
+						.getDefault()
+						.getLog()
+						.log(new Status(
+								IStatus.ERROR,
+								Activator.PLUGIN_ID,
+								"Could not discover running PiPlug daemon process",
+								e));
+
+			return null;
+		}
+	}
+
+	public PiPlugClient getClient() {
+		return client;
+	}
+
+	@Override
+	public void newBundleList(BundleDescriptors descriptors) {
+		setRemoteBundleDescriptors(descriptors);
 	}
 }
