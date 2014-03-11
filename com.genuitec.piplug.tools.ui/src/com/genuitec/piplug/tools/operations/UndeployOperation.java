@@ -8,6 +8,7 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.MultiStatus;
 import org.eclipse.core.runtime.Status;
 
+import com.genuitec.piplug.client.BundleDescriptor;
 import com.genuitec.piplug.client.PiPlugClient;
 import com.genuitec.piplug.tools.model.PiPlugCore;
 import com.genuitec.piplug.tools.model.PiPlugExtension;
@@ -31,8 +32,16 @@ public class UndeployOperation extends PiPlugOperation {
 		try {
 			PiPlugClient client = PiPlugCore.getInstance().getClient();
 			for (PiPlugExtension extension : extensions) {
+				BundleDescriptor localBundleDescriptor = extension.getBundle().getDescriptor();
+				BundleDescriptor remoteBundleDescriptor = PiPlugCore
+						.getInstance().getRemoteBundleDescriptor(
+								localBundleDescriptor);
+				if (null == remoteBundleDescriptor) {
+					System.err.println("Could not find a remote bundle descriptor for " + localBundleDescriptor);
+					continue;
+				}
 				try {
-					client.removeBundle(extension.getBundle().getDescriptor());
+					client.removeBundle(remoteBundleDescriptor);
 				} catch (CoreException e) {
 					// TODO better error handling
 					e.printStackTrace();
