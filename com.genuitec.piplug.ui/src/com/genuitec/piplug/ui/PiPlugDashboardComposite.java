@@ -274,11 +274,11 @@ public class PiPlugDashboardComposite extends Composite {
 
 	@Override
 	public void mouseDown(MouseEvent arg0) {
-	    label.setText("Loading...");
 	    getDisplay().asyncExec(this);
 	}
 
 	public void run() {
+	    label.setText("Loading...");
 	    if (child == null)
 		child = app.prepare(container.getServices(), container);
 	    container.activate(child);
