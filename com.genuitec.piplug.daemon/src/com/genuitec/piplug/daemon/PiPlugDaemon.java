@@ -316,7 +316,8 @@ public class PiPlugDaemon extends AbstractFileWebServer {
 	    }
 	}
 	if (!quiet)
-	    System.out.println("Loaded Bundles: " + bundleDescriptors);
+	    System.out.println("Loaded Bundles: "
+		    + bundleDescriptors.getDescriptors());
     }
 
     private void saveBundlesList() {

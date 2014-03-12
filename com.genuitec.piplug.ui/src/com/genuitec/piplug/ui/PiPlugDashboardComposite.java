@@ -38,7 +38,7 @@ public class PiPlugDashboardComposite extends Composite {
 	    for (Control control : appHandles) {
 		if (control instanceof PiPlugAppHandle) {
 		    PiPlugAppHandle handle = (PiPlugAppHandle) control;
-		    if (descriptor.equals(handle.getDescriptor())) {
+		    if (descriptor.matchesID(handle.getDescriptor())) {
 			this.appHandle = handle;
 			return;
 		    }
@@ -168,12 +168,33 @@ public class PiPlugDashboardComposite extends Composite {
     public class PiPlugAppHandle extends Composite implements MouseListener,
 	    Runnable {
 
+	public class UpdateAppVersionRunnable implements Runnable {
+	    @Override
+	    public void run() {
+		updateAppBranding();
+		if (wasRunning) {
+		    PiPlugAppHandle.this.run();
+		    wasRunning = false;
+		}
+	    }
+	}
+
+	public boolean wasRunning;
+
 	public class UnloadExistingBundleRunnable implements Runnable {
+
+	    private boolean dispose;
+
+	    public UnloadExistingBundleRunnable(boolean dispose) {
+		this.dispose = dispose;
+	    }
 
 	    @Override
 	    public void run() {
-		if (runningApp == PiPlugAppHandle.this)
+		if (runningApp == PiPlugAppHandle.this) {
+		    PiPlugAppHandle.this.wasRunning = true;
 		    container.switchToHome();
+		}
 		try {
 		    app.suspend(container.getServices());
 		} catch (Throwable t) {
@@ -189,8 +210,8 @@ public class PiPlugDashboardComposite extends Composite {
 		    child = null;
 		}
 		app = null;
-		PiPlugAppHandle.this.dispose();
-		changedAppHandles();
+		if (dispose)
+		    PiPlugAppHandle.this.dispose();
 	    }
 
 	}
@@ -199,6 +220,7 @@ public class PiPlugDashboardComposite extends Composite {
 	private Label label;
 	private Composite child;
 	private BundleDescriptor descriptor;
+	private Label button;
 
 	public PiPlugAppHandle(Composite parent, IPiPlugApplication app,
 		IPiPlugUITheme theme, BundleDescriptor descriptor) {
@@ -218,8 +240,7 @@ public class PiPlugDashboardComposite extends Composite {
 	    layout.marginWidth = layout.marginHeight = 0;
 	    layout.verticalSpacing = 10;
 	    setLayout(layout);
-	    Label button = new Label(this, SWT.PUSH);
-	    button.setImage(app.getBranding().getImage());
+	    button = new Label(this, SWT.PUSH);
 	    button.setBackground(theme.getBackgroundColor());
 	    GridData gd = new GridData(SWT.FILL, SWT.FILL, true, true);
 	    gd.heightHint = 256;
@@ -227,7 +248,6 @@ public class PiPlugDashboardComposite extends Composite {
 	    button.setLayoutData(gd);
 	    button.addMouseListener(this);
 	    label = new Label(this, SWT.CENTER);
-	    label.setText(app.getBranding().getName());
 	    label.setFont(theme.getTitleFont());
 	    label.setForeground(theme.getTitleColor());
 	    label.setLayoutData(new GridData(SWT.FILL, SWT.BOTTOM, true, false));
@@ -239,6 +259,12 @@ public class PiPlugDashboardComposite extends Composite {
 	    gd.heightHint = 206;
 	    setLayoutData(gd);
 	    this.setBackground(theme.getBackgroundColor());
+	    updateAppBranding();
+	}
+
+	private void updateAppBranding() {
+	    button.setImage(app.getBranding().getImage());
+	    label.setText(app.getBranding().getName());
 	}
 
 	@Override
@@ -266,8 +292,8 @@ public class PiPlugDashboardComposite extends Composite {
 		app.suspend(container.getServices());
 	}
 
-	public void unloadExisting() {
-	    getDisplay().syncExec(new UnloadExistingBundleRunnable());
+	public void unloadExisting(boolean dispose) {
+	    getDisplay().syncExec(new UnloadExistingBundleRunnable(dispose));
 	}
 
 	@Override
@@ -277,6 +303,16 @@ public class PiPlugDashboardComposite extends Composite {
 
 	public BundleDescriptor getDescriptor() {
 	    return descriptor;
+	}
+
+	public boolean updateAppIfNeeded(IPiPlugApplication newApp,
+		BundleDescriptor newDescriptor) {
+	    if (app != null)
+		return false;
+	    app = newApp;
+	    descriptor = newDescriptor;
+	    getDisplay().syncExec(new UpdateAppVersionRunnable());
+	    return true;
 	}
     }
 
@@ -293,17 +329,21 @@ public class PiPlugDashboardComposite extends Composite {
 	return runnable.getAppHandle();
     }
 
-    public void setApplications(Map<BundleDescriptor, IPiPlugApplication> apps) {
-	getDisplay().syncExec(new SetApplicationsRunnable(apps));
+    public void setApplications(Map<BundleDescriptor, IPiPlugApplication> apps,
+	    boolean removedApps) {
+	getDisplay().syncExec(new SetApplicationsRunnable(apps, removedApps));
     }
 
     private class SetApplicationsRunnable implements Runnable {
 
 	private Map<BundleDescriptor, IPiPlugApplication> apps;
+	private boolean removedApps;
 
 	public SetApplicationsRunnable(
-		Map<BundleDescriptor, IPiPlugApplication> apps) {
+		Map<BundleDescriptor, IPiPlugApplication> apps,
+		boolean removedApps) {
 	    this.apps = apps;
+	    this.removedApps = removedApps;
 	}
 
 	public void run() {
@@ -312,15 +352,18 @@ public class PiPlugDashboardComposite extends Composite {
 	    for (Entry<BundleDescriptor, IPiPlugApplication> next : apps
 		    .entrySet()) {
 		BundleDescriptor descriptor = next.getKey();
-		if (findAppHandle(descriptor) != null)
-		    continue;
-		madeChanges = true;
+		PiPlugAppHandle appHandle = findAppHandle(descriptor);
 		IPiPlugApplication app = next.getValue();
+		if (appHandle != null) {
+		    madeChanges |= appHandle.updateAppIfNeeded(app, descriptor);
+		    continue;
+		}
+		madeChanges = true;
 		new PiPlugAppHandle(buttonsArea, app, theme, descriptor);
 		app.installed(container.getServices());
 	    }
 
-	    if (updateButtonsLayout(apps) || madeChanges) {
+	    if (removedApps || madeChanges || updateButtonsLayout(apps)) {
 		changedAppHandles();
 	    }
 	}

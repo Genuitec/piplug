@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -43,8 +44,16 @@ public class PiPlugCore implements IPiPlugClientListener {
 
 		@Override
 		public void modelsChanged(PluginModelDelta delta) {
-			reload(delta.getAddedEntries());
-			reload(delta.getChangedEntries());
+			Set<ModelEntry> toReload = new HashSet<ModelEntry>();
+			ModelEntry[] addedEntries = delta.getAddedEntries();
+			if (null != addedEntries)
+				toReload.addAll(Arrays.asList(addedEntries));
+			ModelEntry[] changedEntries = delta.getChangedEntries();
+			if (null != changedEntries)
+				toReload.addAll(Arrays.asList(changedEntries));
+
+			boolean changed = false;
+			changed |= reload(toReload);
 
 			// Do removals at the end, in case a change & removal is sent
 			ModelEntry[] removed = delta.getRemovedEntries();
@@ -63,11 +72,14 @@ public class PiPlugCore implements IPiPlugClientListener {
 						if (!toRemove.isEmpty()) {
 							localBundleDescriptors.getDescriptors().removeAll(
 									descriptors);
-							fireBundleDescriptorsChanged();
+							changed = true;
 						}
 					}
 				}
 			}
+
+			if (changed)
+				fireBundleDescriptorsChanged();
 		}
 
 		@Override
@@ -90,27 +102,33 @@ public class PiPlugCore implements IPiPlugClientListener {
 
 		@Override
 		protected IStatus run(IProgressMonitor monitor) {
+			Set<IPluginModelBase> toReload = new HashSet<IPluginModelBase>();
 			IPluginModelBase[] added = event.getAddedModels();
 			if (null != added && added.length > 0)
-				reload(added);
+				toReload.addAll(Arrays.asList(added));
 
 			IPluginModelBase[] changed = event.getChangedModels();
 			if (null != changed && changed.length > 0)
-				reload(changed);
+				toReload.addAll(Arrays.asList(changed));
+
+			boolean didChange = false;
+			if (!toReload.isEmpty()) {
+				didChange |= reload(toReload);
+			}
 
 			// Do removals at the end, in case a change & removal is sent
 			IPluginModelBase[] removed = event.getRemovedModels();
 			if (null != removed && removed.length > 0) {
-				boolean didRemoval = false;
 				for (IPluginModelBase plugin : removed) {
 					BundleDescriptor descriptor = PiPlugCore
 							.fromPluginModelBase(plugin);
 					localBundleDescriptors.getDescriptors().remove(descriptor);
-					didRemoval = true;
+					didChange = true;
 				}
-				if (didRemoval)
-					fireBundleDescriptorsChanged();
 			}
+			
+			if (didChange)
+				fireBundleDescriptorsChanged();
 			return Status.OK_STATUS;
 		}
 	}
@@ -139,18 +157,24 @@ public class PiPlugCore implements IPiPlugClientListener {
 		listeners.remove(listener);
 	}
 
-	protected void reload(ModelEntry[] modelEntries) {
-		if (null == modelEntries || modelEntries.length == 0)
-			return;
+	protected boolean reload(Set<ModelEntry> toReload) {
+		if (null == toReload || toReload.isEmpty())
+			return false;
 
-		for (ModelEntry entry : modelEntries) {
-			reload(entry.getActiveModels());
+		boolean changed = false;
+		for (ModelEntry entry : toReload) {
+			IPluginModelBase[] activeModels = entry.getActiveModels();
+			if (activeModels == null || activeModels.length == 0)
+				continue;
+			reload(Arrays.asList(activeModels));
+			changed = true;
 		}
+		return changed;
 	}
 
-	private void reload(IPluginModelBase[] plugins) {
-		if (null == plugins)
-			return;
+	private boolean reload(Collection<IPluginModelBase> plugins) {
+		if (null == plugins || plugins.isEmpty())
+			return false;
 		boolean changed = false;
 		for (IPluginModelBase plugin : plugins) {
 			PiPlugBundle bundle = createPiPlugBundle(plugin);
@@ -163,8 +187,7 @@ public class PiPlugCore implements IPiPlugClientListener {
 			localBundleDescriptors.getDescriptors().add(descriptor);
 			changed = true;
 		}
-		if (changed)
-			fireBundleDescriptorsChanged();
+		return changed;
 	}
 
 	private PiPlugBundle createPiPlugBundle(IPluginModelBase plugin) {

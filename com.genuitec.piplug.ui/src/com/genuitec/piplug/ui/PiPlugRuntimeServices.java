@@ -55,11 +55,11 @@ public class PiPlugRuntimeServices implements IPiPlugClientListener {
     @Override
     public void newBundleList(BundleDescriptors remoteBundleDescriptors) {
 	try {
-	    synchronizeLocalBundles(localBundleDescriptors,
+	    boolean removedApps = synchronizeLocalBundles(
 		    remoteBundleDescriptors, container.getStatusLine());
 	    Map<BundleDescriptor, IPiPlugApplication> apps = loadLocalApps(container
 		    .getStatusLine());
-	    container.getHome().setApplications(apps);
+	    container.getHome().setApplications(apps, removedApps);
 	} catch (CoreException e) {
 	    // TODO Auto-generated catch block
 	    e.printStackTrace();
@@ -113,7 +113,8 @@ public class PiPlugRuntimeServices implements IPiPlugClientListener {
 
     public File getPathTo(BundleDescriptor desc) {
 	return new File(storageLocation, desc.getBundleID() + "_"
-		+ desc.getVersion() + ".jar");
+		+ desc.getVersion() + '_' + desc.getLastUpdatedOn().getTime()
+		+ ".jar");
     }
 
     public File getStorageLocation() {
@@ -179,14 +180,13 @@ public class PiPlugRuntimeServices implements IPiPlugClientListener {
 	}
     }
 
-    public BundleDescriptors synchronizeLocalBundles(
-	    BundleDescriptors localBundleDescriptors,
+    public boolean synchronizeLocalBundles(
 	    BundleDescriptors remoteBundleDescriptors, IStatusLine statusLine)
 	    throws CoreException {
 
 	if (remoteBundleDescriptors.equals(localBundleDescriptors)) {
 	    this.localBundleDescriptors = remoteBundleDescriptors;
-	    return remoteBundleDescriptors;
+	    return false;
 	}
 
 	// First unload existing running apps that will change
@@ -194,12 +194,17 @@ public class PiPlugRuntimeServices implements IPiPlugClientListener {
 		localBundleDescriptors.getDescriptors());
 	toRemove.removeAll(remoteBundleDescriptors.getDescriptors());
 
+	boolean removedApps = false;
 	if (!toRemove.isEmpty()) {
 	    statusLine.updateMessage("Cleaning up old plug-ins...");
 	    for (BundleDescriptor next : toRemove) {
 		PiPlugAppHandle appHandle = findAppHandle(next);
-		if (null != appHandle)
-		    appHandle.unloadExisting();
+		if (null != appHandle) {
+		    boolean dispose = remoteBundleDescriptors.matchesByID(next)
+			    .isEmpty();
+		    removedApps |= dispose;
+		    appHandle.unloadExisting(dispose);
+		}
 	    }
 	    for (BundleDescriptor next : toRemove) {
 		Bundle bundle = findBundle(next, startedBundles);
@@ -224,7 +229,10 @@ public class PiPlugRuntimeServices implements IPiPlugClientListener {
 		}
 	    }
 	    for (BundleDescriptor next : toRemove) {
-		PiPlugRuntimeServices.getInstance().getPathTo(next).delete();
+		File path = getPathTo(next);
+		if (!path.delete()) {
+		    path.deleteOnExit();
+		}
 	    }
 	}
 
@@ -242,10 +250,9 @@ public class PiPlugRuntimeServices implements IPiPlugClientListener {
 	statusLine.updateMessage("Saving plug-ins list...");
 	PiPlugRuntimeServices.getInstance().saveBundleDescriptors(
 		remoteBundleDescriptors);
-	localBundleDescriptors = remoteBundleDescriptors;
 
-	this.localBundleDescriptors = localBundleDescriptors;
-	return localBundleDescriptors;
+	this.localBundleDescriptors = remoteBundleDescriptors;
+	return removedApps;
     }
 
     private Bundle findBundle(BundleDescriptor bundle, Set<Bundle> bundles) {
@@ -382,9 +389,8 @@ public class PiPlugRuntimeServices implements IPiPlugClientListener {
 	BundleDescriptors remoteBundleDescriptors = client
 		.getBundlesFromCache();
 
-	localBundleDescriptors = PiPlugRuntimeServices.getInstance()
-		.synchronizeLocalBundles(localBundleDescriptors,
-			remoteBundleDescriptors, statusLine);
+	PiPlugRuntimeServices.getInstance().synchronizeLocalBundles(
+		remoteBundleDescriptors, statusLine);
 
 	return PiPlugRuntimeServices.getInstance().loadLocalApps(statusLine);
     }

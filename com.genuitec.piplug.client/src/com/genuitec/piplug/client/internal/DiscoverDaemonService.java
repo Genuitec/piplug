@@ -118,6 +118,7 @@ public class DiscoverDaemonService extends Thread {
 
     private void sendDiscoveryTo(InetAddress broadcast) {
 	try {
+	    System.out.println("Discovering via " + broadcast);
 	    DatagramPacket dp = new DatagramPacket(bytesToSend, 0,
 		    bytesToSend.length, broadcast, DAEMON_PORT);
 	    socket.send(dp);
@@ -128,6 +129,17 @@ public class DiscoverDaemonService extends Thread {
 
     public static InetSocketAddress discover(int timeoutInMillis)
 	    throws CoreException {
+	String address = System.getProperty("piplug.daemon.address");
+	if (null != address) {
+	    try {
+		return new InetSocketAddress(address, DAEMON_PORT);
+	    } catch (Throwable t) {
+		System.err.println("Invalid piplug.daemon.address value "
+			+ address);
+		t.printStackTrace();
+		System.err.println("Falling back to daemon discovery");
+	    }
+	}
 	try {
 	    byte[] bytesToSend = "find-piplug-server".getBytes("UTF-8");
 	    String expectedToReceive = "piplug-server";
