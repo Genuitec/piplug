@@ -262,17 +262,12 @@ public class PiPlugDashboardComposite extends Composite {
 	}
 
 	public void suspend() {
-	    app.suspend(container.getServices());
+	    if (app != null)
+		app.suspend(container.getServices());
 	}
 
 	public void unloadExisting() {
 	    getDisplay().syncExec(new UnloadExistingBundleRunnable());
-	}
-
-	public void finishUpgrade(BundleDescriptor descriptor) {
-	    // app = discoverAppForBundle(descriptor);
-	    // app.installed(container.getServices());
-	    // // TODO: refresh "Label button" with new image and title
 	}
 
 	@Override
