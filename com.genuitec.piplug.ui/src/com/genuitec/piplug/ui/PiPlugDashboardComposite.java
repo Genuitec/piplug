@@ -363,7 +363,7 @@ public class PiPlugDashboardComposite extends Composite {
 		app.installed(container.getServices());
 	    }
 
-	    if (removedApps || madeChanges || updateButtonsLayout(apps)) {
+	    if (updateButtonsLayout(apps) || removedApps || madeChanges) {
 		changedAppHandles();
 	    }
 	}

@@ -3,16 +3,22 @@ package com.genuitec.piplug.tools.model;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IResourceChangeEvent;
+import org.eclipse.core.resources.IResourceChangeListener;
+import org.eclipse.core.resources.IResourceDelta;
+import org.eclipse.core.resources.IWorkspace;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.osgi.service.resolver.BundleDescription;
@@ -22,13 +28,8 @@ import org.eclipse.pde.core.plugin.IPluginElement;
 import org.eclipse.pde.core.plugin.IPluginExtension;
 import org.eclipse.pde.core.plugin.IPluginModelBase;
 import org.eclipse.pde.core.plugin.IPluginObject;
-import org.eclipse.pde.core.plugin.ModelEntry;
-import org.eclipse.pde.internal.core.IExtensionDeltaEvent;
-import org.eclipse.pde.internal.core.IExtensionDeltaListener;
-import org.eclipse.pde.internal.core.IPluginModelListener;
 import org.eclipse.pde.internal.core.PDECore;
 import org.eclipse.pde.internal.core.PDEExtensionRegistry;
-import org.eclipse.pde.internal.core.PluginModelDelta;
 
 import com.genuitec.piplug.client.BundleDescriptor;
 import com.genuitec.piplug.client.BundleDescriptors;
@@ -39,97 +40,51 @@ import com.genuitec.piplug.tools.ui.Activator;
 
 @SuppressWarnings("restriction")
 public class PiPlugCore implements IPiPlugClientListener {
-	public class PiPlugPDEListener implements IPluginModelListener,
-			IExtensionDeltaListener {
+	public class IndexModelJob extends Job {
 
-		@Override
-		public void modelsChanged(PluginModelDelta delta) {
-			Set<ModelEntry> toReload = new HashSet<ModelEntry>();
-			ModelEntry[] addedEntries = delta.getAddedEntries();
-			if (null != addedEntries)
-				toReload.addAll(Arrays.asList(addedEntries));
-			ModelEntry[] changedEntries = delta.getChangedEntries();
-			if (null != changedEntries)
-				toReload.addAll(Arrays.asList(changedEntries));
-
-			boolean changed = false;
-			changed |= reload(toReload);
-
-			// Do removals at the end, in case a change & removal is sent
-			ModelEntry[] removed = delta.getRemovedEntries();
-			if (null != removed && removed.length > 0) {
-				for (ModelEntry entry : removed) {
-					String pluginId = entry.getId();
-					Set<BundleDescriptor> toRemove = new HashSet<BundleDescriptor>();
-					synchronized (localBundleDescriptors) {
-						List<BundleDescriptor> descriptors = localBundleDescriptors
-								.getDescriptors();
-						for (BundleDescriptor next : descriptors) {
-							if (pluginId.equals(next.getBundleID())) {
-								toRemove.add(next);
-							}
-						}
-						if (!toRemove.isEmpty()) {
-							localBundleDescriptors.getDescriptors().removeAll(
-									descriptors);
-							changed = true;
-						}
-					}
-				}
-			}
-
-			if (changed)
-				fireBundleDescriptorsChanged();
-		}
-
-		@Override
-		public void extensionsChanged(final IExtensionDeltaEvent event) {
-			// PDE returns the old model during this callback, so react
-			// out of band
-			new ExtensionsChangedSyncJob(event).schedule();
-		}
-	}
-
-	private class ExtensionsChangedSyncJob extends Job {
-		private final IExtensionDeltaEvent event;
-
-		private ExtensionsChangedSyncJob(IExtensionDeltaEvent event) {
-			super("Extensions changed model synchronization");
+		public IndexModelJob() {
+			super("Indexing PiPlug Model");
 			setUser(false);
 			setSystem(true);
-			this.event = event;
 		}
 
 		@Override
 		protected IStatus run(IProgressMonitor monitor) {
-			Set<IPluginModelBase> toReload = new HashSet<IPluginModelBase>();
-			IPluginModelBase[] added = event.getAddedModels();
-			if (null != added && added.length > 0)
-				toReload.addAll(Arrays.asList(added));
+			index();
+			return Status.OK_STATUS;
+		}
 
-			IPluginModelBase[] changed = event.getChangedModels();
-			if (null != changed && changed.length > 0)
-				toReload.addAll(Arrays.asList(changed));
+	}
+	
+	public class PiPlugResourcesListener implements IResourceChangeListener {
 
-			boolean didChange = false;
-			if (!toReload.isEmpty()) {
-				didChange |= reload(toReload);
-			}
-
-			// Do removals at the end, in case a change & removal is sent
-			IPluginModelBase[] removed = event.getRemovedModels();
-			if (null != removed && removed.length > 0) {
-				for (IPluginModelBase plugin : removed) {
-					BundleDescriptor descriptor = PiPlugCore
-							.fromPluginModelBase(plugin);
-					localBundleDescriptors.getDescriptors().remove(descriptor);
-					didChange = true;
+		@Override
+		public void resourceChanged(IResourceChangeEvent event) {
+			if (event.getType() != IResourceChangeEvent.POST_CHANGE)
+				return;
+			IResourceDelta rootDelta = event.getDelta();
+			IResourceDelta[] affectedChildren = rootDelta.getAffectedChildren();
+			if (affectedChildren != null) {
+				for (IResourceDelta childDelta : affectedChildren) {
+					IResource resource = childDelta.getResource();
+					if (resource instanceof IProject) {
+						if ((childDelta.getFlags() & IResourceDelta.OPEN) != 0) {
+							refreshModel();
+							return;
+						}
+						IResourceDelta pluginDelta = childDelta.findMember(new Path("plugin.xml"));
+						if (pluginDelta != null) {
+							refreshModel();
+							return;
+						}
+						IResourceDelta manifestDelta = childDelta.findMember(new Path("META-INF/MANIFEST.MF"));
+						if (manifestDelta != null) {
+							refreshModel();
+							return;
+						}
+					}
 				}
 			}
-			
-			if (didChange)
-				fireBundleDescriptorsChanged();
-			return Status.OK_STATUS;
 		}
 	}
 
@@ -144,9 +99,20 @@ public class PiPlugCore implements IPiPlugClientListener {
 	private PiPlugClient client;
 	private PiPlugDaemon localDaemon;
 	private CoreException daemonException;
+	private PiPlugResourcesListener resourcesListener;
+
+	private IndexModelJob indexModelJob;
 
 	public static PiPlugCore getInstance() {
 		return instance;
+	}
+
+	public void refreshModel() {
+		if (null == indexModelJob) {
+			indexModelJob = new IndexModelJob();
+			indexModelJob.setRule(ResourcesPlugin.getWorkspace().getRoot());
+		}
+		indexModelJob.schedule(500);
 	}
 
 	public void addPiPlugApplicationListener(IPiPlugBundleListener listener) {
@@ -157,40 +123,8 @@ public class PiPlugCore implements IPiPlugClientListener {
 		listeners.remove(listener);
 	}
 
-	protected boolean reload(Set<ModelEntry> toReload) {
-		if (null == toReload || toReload.isEmpty())
-			return false;
 
-		boolean changed = false;
-		for (ModelEntry entry : toReload) {
-			IPluginModelBase[] activeModels = entry.getActiveModels();
-			if (activeModels == null || activeModels.length == 0)
-				continue;
-			reload(Arrays.asList(activeModels));
-			changed = true;
-		}
-		return changed;
-	}
-
-	private boolean reload(Collection<IPluginModelBase> plugins) {
-		if (null == plugins || plugins.isEmpty())
-			return false;
-		boolean changed = false;
-		for (IPluginModelBase plugin : plugins) {
-			PiPlugBundle bundle = createPiPlugBundle(plugin);
-			if (null == bundle)
-				continue;
-
-			BundleDescriptor descriptor = PiPlugCore
-					.fromPluginModelBase(plugin);
-			descriptor.putData(KEY_BUNDLE, bundle);
-			localBundleDescriptors.getDescriptors().add(descriptor);
-			changed = true;
-		}
-		return changed;
-	}
-
-	private PiPlugBundle createPiPlugBundle(IPluginModelBase plugin) {
+	private PiPlugBundle createPiPlugBundle(IPluginModelBase plugin, BundleDescriptor bundleDescriptor) {
 		IExtensions pluginExtensions = plugin.getExtensions();
 		if (null == pluginExtensions)
 			return null;
@@ -204,7 +138,7 @@ public class PiPlugCore implements IPiPlugClientListener {
 					if (extensionType.getExtensionPointId().equals(
 							extension.getPoint())) {
 						bundleExtensions.addAll(getExtensions(extension,
-								extensionType));
+								extensionType, bundleDescriptor));
 					}
 				}
 			}
@@ -216,7 +150,7 @@ public class PiPlugCore implements IPiPlugClientListener {
 			return null;
 
 		PiPlugBundle bundle = new PiPlugBundle(plugin.getBundleDescription()
-				.getName());
+				.getName(), bundleDescriptor);
 		bundle.setApplications(bundleExtensions);
 
 		return bundle;
@@ -232,7 +166,7 @@ public class PiPlugCore implements IPiPlugClientListener {
 	}
 
 	private Set<PiPlugExtension> getExtensions(IPluginExtension extension,
-			ExtensionType extensionType) {
+			ExtensionType extensionType, BundleDescriptor bundleDescriptor) {
 		IPluginObject[] children = extension.getChildren();
 		HashSet<PiPlugExtension> extensions = new HashSet<PiPlugExtension>();
 		if (null == children || children.length == 0)
@@ -264,6 +198,7 @@ public class PiPlugCore implements IPiPlugClientListener {
 				IPluginAttribute nameAttribute = element.getAttribute("name");
 				String name = nameAttribute == null ? "Error: app name required in extension"
 						: nameAttribute.getValue();
+				bundleDescriptor.setAppName(name);
 				IPluginAttribute imageAttribute = element.getAttribute("image");
 				String image = imageAttribute == null ? null : imageAttribute
 						.getValue();
@@ -279,7 +214,7 @@ public class PiPlugCore implements IPiPlugClientListener {
 		registerWorkspaceListener();
 		registerClientListener();
 
-		initialize();
+		refreshModel();
 	}
 
 	private void registerClientListener() {
@@ -288,15 +223,13 @@ public class PiPlugCore implements IPiPlugClientListener {
 	}
 
 	private void registerWorkspaceListener() {
-		PiPlugPDEListener listener = new PiPlugPDEListener();
-		PDECore.getDefault().getModelManager().addPluginModelListener(listener);
-		PDECore.getDefault().getModelManager()
-				.addExtensionDeltaListener(listener);
-
+		IWorkspace workspace = ResourcesPlugin.getWorkspace();
+		resourcesListener = new PiPlugResourcesListener();
+		workspace.addResourceChangeListener(resourcesListener);
 	}
 
-	private void initialize() {
-		localBundleDescriptors = new BundleDescriptors();
+	protected void index() {
+		BundleDescriptors newBundleDescriptors = new BundleDescriptors();
 
 		PDEExtensionRegistry extensionsRegistry = PDECore.getDefault()
 				.getExtensionsRegistry();
@@ -308,18 +241,31 @@ public class PiPlugCore implements IPiPlugClientListener {
 					.findExtensionPlugins(extensionType.getExtensionPointId(),
 							true);
 			if (null != plugins) {
-				pluginModels.addAll(Arrays.asList(plugins));
+				for (IPluginModelBase pluginModel : plugins) {
+					IResource underlyingResource = pluginModel.getUnderlyingResource();
+					if (null == underlyingResource)
+						continue;
+					IProject project = underlyingResource.getProject();
+					if (project.exists() && project.isOpen()) {
+						pluginModels.add(pluginModel);
+					}
+				}
 			}
 		}
 
 		for (IPluginModelBase plugin : pluginModels) {
-			PiPlugBundle bundle = createPiPlugBundle(plugin);
+			BundleDescriptor descriptor = PiPlugCore.fromPluginModelBase(plugin);
+			PiPlugBundle bundle = createPiPlugBundle(plugin, descriptor);
 			if (null == bundle)
 				continue;
 
-			BundleDescriptor descriptor = bundle.getDescriptor();
 			descriptor.putData(KEY_BUNDLE, bundle);
-			localBundleDescriptors.getDescriptors().add(descriptor);
+			newBundleDescriptors.getDescriptors().add(descriptor);
+		}
+		
+		if (localBundleDescriptors == null || !localBundleDescriptors.equals(newBundleDescriptors)) {
+			localBundleDescriptors = newBundleDescriptors;
+			fireBundleDescriptorsChanged();
 		}
 	}
 
@@ -494,6 +440,10 @@ public class PiPlugCore implements IPiPlugClientListener {
 				e.printStackTrace();
 			}
 			client = null;
+		}
+		if (null != resourcesListener) {
+			ResourcesPlugin.getWorkspace().removeResourceChangeListener(resourcesListener);
+			resourcesListener = null;
 		}
 	}
 }

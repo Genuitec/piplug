@@ -22,7 +22,8 @@ public class PiPlugBundle {
 	private File artifact;
 	private IPluginModelBase plugin;
 
-	public PiPlugBundle(String bundleId) {
+	public PiPlugBundle(String bundleId, BundleDescriptor descriptor) {
+		this.descriptor = descriptor;
 		PluginModelManager modelManager = PDECore.getDefault()
 				.getModelManager();
 		plugin = modelManager.findModel(bundleId);
@@ -33,7 +34,6 @@ public class PiPlugBundle {
 		IResource resource = plugin.getUnderlyingResource();
 		if (null != resource)
 			this.project = resource.getProject();
-		this.descriptor = PiPlugCore.fromPluginModelBase(plugin);
 	}
 
 	public SortedSet<PiPlugExtension> getExtensions() {

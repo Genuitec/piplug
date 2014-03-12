@@ -85,4 +85,22 @@ public class BundleDescriptors {
     public void add(BundleDescriptor descriptor) {
 	descriptors.add(descriptor);
     }
+
+    @Override
+    public boolean equals(Object obj) {
+	if (null == obj)
+	    return false;
+	if (this == obj)
+	    return true;
+	if (!(obj instanceof BundleDescriptors))
+	    return false;
+	BundleDescriptors other = (BundleDescriptors) obj;
+	return syncTime == other.syncTime
+		&& descriptors.equals(other.descriptors);
+    }
+
+    @Override
+    public int hashCode() {
+	return (int) (syncTime + descriptors.hashCode());
+    }
 }

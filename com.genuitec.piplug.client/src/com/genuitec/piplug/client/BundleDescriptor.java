@@ -88,7 +88,8 @@ public class BundleDescriptor {
 	BundleDescriptor o = (BundleDescriptor) obj;
 	return bundleID.equals(o.bundleID) && version.equals(o.version)
 		&& nullSafeEquals(firstAdded, o.firstAdded)
-		&& nullSafeEquals(lastUpdatedOn, o.lastUpdatedOn);
+		&& nullSafeEquals(lastUpdatedOn, o.lastUpdatedOn)
+		&& nullSafeEquals(appName, o.appName);
     }
 
     private boolean nullSafeEquals(Object o1, Object o2) {

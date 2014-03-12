@@ -118,7 +118,7 @@ public class DiscoverDaemonService extends Thread {
 
     private void sendDiscoveryTo(InetAddress broadcast) {
 	try {
-	    System.out.println("Discovering via " + broadcast);
+	    // System.out.println("Discovering via " + broadcast);
 	    DatagramPacket dp = new DatagramPacket(bytesToSend, 0,
 		    bytesToSend.length, broadcast, DAEMON_PORT);
 	    socket.send(dp);
