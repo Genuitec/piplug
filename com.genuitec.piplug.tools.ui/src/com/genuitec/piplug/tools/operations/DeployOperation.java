@@ -32,6 +32,67 @@ import com.genuitec.piplug.tools.ui.Activator;
 @SuppressWarnings("restriction")
 public class DeployOperation extends PiPlugOperation {
 
+    private final class HandleAppBuildJobListener extends JobChangeAdapter {
+	private final Set<PiPlugBundle> binaryBundles;
+	private final PluginExportOperation job;
+	private final FeatureExportInfo info;
+	private final Set<PiPlugBundle> sourceBundles;
+	private final IProgressMonitor monitor;
+
+	private HandleAppBuildJobListener(Set<PiPlugBundle> binaryBundles,
+		PluginExportOperation job, FeatureExportInfo info,
+		Set<PiPlugBundle> sourceBundles, IProgressMonitor monitor) {
+	    this.binaryBundles = binaryBundles;
+	    this.job = job;
+	    this.info = info;
+	    this.sourceBundles = sourceBundles;
+	    this.monitor = monitor;
+	}
+
+	public void done(IJobChangeEvent event) {
+	    monitor.worked(sourceBundles.size());
+	    if (job.hasAntErrors()) {
+		// If there were errors when running the ant scripts, inform
+		// the user where the logs can be found.
+		final File logLocation = new File(info.destinationDirectory,
+			"logs.zip"); //$NON-NLS-1$
+		if (logLocation.exists()) {
+		    reportExportError(logLocation);
+		} else {
+		    reportError(
+			    "Deploy Error",
+			    "An unexpected error occurred during the build phase of deployment.",
+			    job.getResult());
+		}
+	    } else if (event.getResult().isOK()) {
+		deployBundles(info, sourceBundles, binaryBundles, monitor);
+	    }
+	}
+    }
+
+    private final class ReportErrorRunnable implements Runnable {
+	private final File logLocation;
+
+	private ReportErrorRunnable(File logLocation) {
+	    this.logLocation = logLocation;
+	}
+
+	public void run() {
+	    if (logLocation == null) {
+		ErrorDialog
+			.openError(
+				null,
+				"Deploy Error",
+				"Export has failed during deployment.\\n\\nPlease see the error log for more details.",
+				null);
+	    } else {
+		ErrorDialog.openError(null, "Deploy Error",
+			"Export has failed during deployment.\\n\\nSee the error log at "
+				+ logLocation.getAbsolutePath(), null);
+	    }
+	}
+    }
+
     private Set<PiPlugExtension> extensions;
 
     public DeployOperation(Set<PiPlugExtension> extensions) {
@@ -61,27 +122,8 @@ public class DeployOperation extends PiPlugOperation {
 		"Exporting apps");
 	job.setUser(true);
 	job.setRule(ResourcesPlugin.getWorkspace().getRoot());
-	job.addJobChangeListener(new JobChangeAdapter() {
-	    public void done(IJobChangeEvent event) {
-		monitor.worked(sourceBundles.size());
-		if (job.hasAntErrors()) {
-		    // If there were errors when running the ant scripts, inform
-		    // the user where the logs can be found.
-		    final File logLocation = new File(
-			    info.destinationDirectory, "logs.zip"); //$NON-NLS-1$
-		    if (logLocation.exists()) {
-			reportExportError(logLocation);
-		    } else {
-			reportError(
-				"Deploy Error",
-				"An unexpected error occurred during the build phase of deployment.",
-				job.getResult());
-		    }
-		} else if (event.getResult().isOK()) {
-		    deployBundles(info, sourceBundles, binaryBundles, monitor);
-		}
-	    }
-	});
+	job.addJobChangeListener(new HandleAppBuildJobListener(binaryBundles,
+		job, info, sourceBundles, monitor));
 	job.schedule();
 	try {
 	    job.join();
@@ -227,13 +269,8 @@ public class DeployOperation extends PiPlugOperation {
 	return result.toArray();
     }
 
-    protected void reportExportError(final File logLocation) {
-	PlatformUI.getWorkbench().getDisplay().syncExec(new Runnable() {
-	    public void run() {
-		ErrorDialog.openError(null, "Deploy Error",
-			"Export has failed during deployment.\\n\\nSee the error log at "
-				+ logLocation.getAbsolutePath(), null);
-	    }
-	});
+    protected void reportExportError(File logLocation) {
+	PlatformUI.getWorkbench().getDisplay()
+		.syncExec(new ReportErrorRunnable(logLocation));
     }
 }
