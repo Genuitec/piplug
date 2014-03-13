@@ -8,42 +8,74 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 
+import com.genuitec.piplug.tools.ui.Activator;
+
 public class FindDaemonJob extends Job {
 
 	private IDaemonStateListener listener;
 
 	public FindDaemonJob(IDaemonStateListener listener) {
-		super("Finding PiPlug Daemon");
+		super("Finding PiPlug Daemon...");
 		this.listener = listener;
 		setUser(false);
-		setSystem(true);
+		setSystem(false);
 	}
 
 	@Override
 	protected IStatus run(IProgressMonitor monitor) {
+		monitor.beginTask("Finding PiPlug Daemon...", IProgressMonitor.UNKNOWN);
 		PiPlugCore core = PiPlugCore.getInstance();
-		InetSocketAddress serverAddress = core.tryToDiscoverDaemon(false);
 
-		if (serverAddress == null) {
-			core.startDaemonLocally();
-			serverAddress = core.tryToDiscoverDaemon(true);
+		InetSocketAddress serverAddress;
+		boolean connected = false;
+		
+		// first try 127.0.0.1 as we avoid delays finding daemon, and IPs changing in DHCP
+		try {
+			InetSocketAddress localAddress = new InetSocketAddress("127.0.0.1", 4392);
+			core.getClient().connectTo(localAddress);
+			serverAddress = localAddress;
+			connected = true;
+			Activator.getDefault().getLog().log(new Status(IStatus.INFO, Activator.PLUGIN_ID, "Discovered PiPlug daemon running on localhost"));;
+		} catch (CoreException e) {
+			// expected to fail when the daemon isn't already running
+			serverAddress = null;
 		}
 
-		if (serverAddress == null)
-		    return Status.OK_STATUS;
+		if (!connected) {
+			serverAddress = core.tryToDiscoverDaemon(false);
+			Activator.getDefault().getLog().log(new Status(IStatus.INFO, Activator.PLUGIN_ID, "Discovered PiPlug daemon running at "+serverAddress));;
+		}
+
+		if (serverAddress == null) {
+			try {
+				core.startDaemonLocally();
+				InetSocketAddress localAddress = new InetSocketAddress("127.0.0.1", 4392);
+				core.getClient().connectTo(localAddress);
+				Activator.getDefault().getLog().log(new Status(IStatus.INFO, Activator.PLUGIN_ID, "Connected to PiPlug daemon initiated by PiPlug Deploy view (running within Eclipse instance)"));;
+				serverAddress = localAddress;
+				connected = true;
+			} catch (Exception e) {
+				Activator.getDefault().getLog().log(new Status(IStatus.INFO, Activator.PLUGIN_ID, "Unable to start or connect to daemon running within Eclipse instance; will retry in 15 seconds", e));;
+				schedule(15000);
+				return Status.OK_STATUS;
+			}
+		}
 		    
-		try {
-			core.getClient().connectTo(serverAddress);
-		} catch (CoreException e) {
-			e.printStackTrace();
-			return Status.OK_STATUS;
+		if (!connected) {
+			try {
+				core.getClient().connectTo(serverAddress);
+			} catch (CoreException e) {
+				Activator.getDefault().getLog().log(e.getStatus());
+				schedule(15000);
+				return Status.OK_STATUS;
+			}
 		}
 		listener.daemonStateChanged();
 		
 		try {
 			core.getClient().notifyClients();
 		} catch (CoreException e) {
-			e.printStackTrace();
+			Activator.getDefault().getLog().log(e.getStatus());
 		}
 		return Status.OK_STATUS;
 	}

@@ -100,8 +100,8 @@ public class PiPlugCore implements IPiPlugClientListener {
 	private PiPlugDaemon localDaemon;
 	private CoreException daemonException;
 	private PiPlugResourcesListener resourcesListener;
-
 	private IndexModelJob indexModelJob;
+	private boolean scheduledFindDaemon = false;
 
 	public static PiPlugCore getInstance() {
 		return instance;
@@ -377,7 +377,10 @@ public class PiPlugCore implements IPiPlugClientListener {
 	}
 
 	public void scheduleFindDaemon(IDaemonStateListener listener) {
+		if (scheduledFindDaemon)
+			return;
 		new FindDaemonJob(listener).schedule();
+		scheduledFindDaemon = true;
 	}
 
 	public boolean hasDaemonConnection() {
