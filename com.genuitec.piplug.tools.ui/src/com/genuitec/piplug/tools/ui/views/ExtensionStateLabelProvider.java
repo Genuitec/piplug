@@ -7,22 +7,22 @@ import org.eclipse.jface.viewers.ColumnLabelProvider;
 import com.genuitec.piplug.tools.model.DeploymentStatus;
 import com.genuitec.piplug.tools.model.PiPlugExtension;
 
-public class ExtensionStateLabelProvider extends
-		ColumnLabelProvider {
-	private static final DateFormat format = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT);
+public class ExtensionStateLabelProvider extends ColumnLabelProvider {
+    private static final DateFormat format = DateFormat.getDateTimeInstance(
+	    DateFormat.SHORT, DateFormat.SHORT);
 
-	@Override
-	public String getText(Object element) {
-		if (element instanceof PiPlugExtension) {
-			PiPlugExtension extension = (PiPlugExtension) element;
-			DeploymentStatus status = extension.getDeploymentStatus();
-			switch (status.getState()) {
-				case NOT_DEPLOYED:
-					return "Not deployed";
-				case DEPLOYED:
-					return "Deployed on " + format.format(status.getDate());
-			}
-		}
-		return super.getText(element);
+    @Override
+    public String getText(Object element) {
+	if (element instanceof PiPlugExtension) {
+	    PiPlugExtension extension = (PiPlugExtension) element;
+	    DeploymentStatus status = extension.getDeploymentStatus();
+	    switch (status.getState()) {
+	    case NOT_DEPLOYED:
+		return "Not deployed";
+	    case DEPLOYED:
+		return "Deployed on " + format.format(status.getDate());
+	    }
 	}
+	return super.getText(element);
+    }
 }

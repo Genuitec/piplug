@@ -16,47 +16,50 @@ import com.genuitec.piplug.tools.ui.Activator;
 
 public class UndeployOperation extends PiPlugOperation {
 
-	private Set<PiPlugExtension> extensions;
+    private Set<PiPlugExtension> extensions;
 
-	public UndeployOperation(Set<PiPlugExtension> extensions) {
-		super("Undeploying applications");
-		this.extensions = extensions;
-	}
+    public UndeployOperation(Set<PiPlugExtension> extensions) {
+	super("Undeploying applications");
+	this.extensions = extensions;
+    }
 
-	@Override
-	protected IStatus doRun(IProgressMonitor monitor) {
+    @Override
+    protected IStatus doRun(IProgressMonitor monitor) {
 
-		MultiStatus status = new MultiStatus(Activator.PLUGIN_ID, 42,
-				"Undeploy result", null);
-		monitor.beginTask("Undeploying applications", extensions.size());
-		try {
-			PiPlugClient client = PiPlugCore.getInstance().getClient();
-			for (PiPlugExtension extension : extensions) {
-				BundleDescriptor localBundleDescriptor = extension.getBundle().getDescriptor();
-				BundleDescriptor remoteBundleDescriptor = PiPlugCore
-						.getInstance().getRemoteBundleDescriptor(
-								localBundleDescriptor);
-				if (null == remoteBundleDescriptor) {
-					System.err.println("Could not find a remote bundle descriptor for " + localBundleDescriptor);
-					continue;
-				}
-				try {
-					client.removeBundle(remoteBundleDescriptor);
-				} catch (CoreException e) {
-					// TODO better error handling
-					e.printStackTrace();
-				}
-				monitor.worked(1);
-			}
-			try {
-				client.notifyClients();
-			} catch (CoreException e) {
-				// TODO better error handling
-				e.printStackTrace();
-			}
-		} finally {
-			monitor.done();
+	MultiStatus status = new MultiStatus(Activator.PLUGIN_ID, 42,
+		"Undeploy result", null);
+	monitor.beginTask("Undeploying applications", extensions.size());
+	try {
+	    PiPlugClient client = PiPlugCore.getInstance().getClient();
+	    for (PiPlugExtension extension : extensions) {
+		BundleDescriptor localBundleDescriptor = extension.getBundle()
+			.getDescriptor();
+		BundleDescriptor remoteBundleDescriptor = PiPlugCore
+			.getInstance().getRemoteBundleDescriptor(
+				localBundleDescriptor);
+		if (null == remoteBundleDescriptor) {
+		    System.err
+			    .println("Could not find a remote bundle descriptor for "
+				    + localBundleDescriptor);
+		    continue;
 		}
-		return Status.OK_STATUS;
+		try {
+		    client.removeBundle(remoteBundleDescriptor);
+		} catch (CoreException e) {
+		    // TODO better error handling
+		    e.printStackTrace();
+		}
+		monitor.worked(1);
+	    }
+	    try {
+		client.notifyClients();
+	    } catch (CoreException e) {
+		// TODO better error handling
+		e.printStackTrace();
+	    }
+	} finally {
+	    monitor.done();
 	}
+	return Status.OK_STATUS;
+    }
 }
