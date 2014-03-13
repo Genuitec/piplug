@@ -467,5 +467,9 @@ public class PiPlugCore implements IPiPlugClientListener {
 		    resourcesListener);
 	    resourcesListener = null;
 	}
+	if (null != localDaemon) {
+	    localDaemon.stop();
+	    localDaemon = null;
+	}
     }
 }

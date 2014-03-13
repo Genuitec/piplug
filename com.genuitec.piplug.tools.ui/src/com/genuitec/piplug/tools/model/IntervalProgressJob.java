@@ -21,7 +21,7 @@ public class IntervalProgressJob extends Job {
 
     @Override
     protected IStatus run(IProgressMonitor intervalJobProgress) {
-	if (intervalJobProgress.isCanceled())
+	if (intervalJobProgress.isCanceled() || monitor.isCanceled())
 	    return Status.OK_STATUS;
 	if (duration < 0)
 	    return Status.OK_STATUS;
