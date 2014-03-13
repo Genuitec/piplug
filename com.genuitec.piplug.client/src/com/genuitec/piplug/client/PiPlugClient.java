@@ -190,7 +190,6 @@ public class PiPlugClient {
 		Unmarshaller unmarshaller = jaxb.createUnmarshaller();
 		Object result = unmarshaller.unmarshal(new BufferedReader(raw));
 		bundleDescriptors = (BundleDescriptors) result;
-		fireNewBundleDescriptors();
 		return bundleDescriptors.getDescriptors();
 	    } finally {
 		raw.close();
