@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?pde version="3.5"?>
 
-<product name="PiPlug Front-end" uid="piplug" id="com.genuitec.piplug.ui.product" application="com.genuitec.piplug.ui.app" version="1.0.0.qualifier" useFeatures="false" includeLaunchers="true">
+<product name="PiPlug Front-end" uid="piplug" id="com.genuitec.piplug.ui.product" application="com.genuitec.piplug.ui.app" version="1.0.1.qualifier" useFeatures="false" includeLaunchers="true">
 
    <configIni use="default">
    </configIni>
