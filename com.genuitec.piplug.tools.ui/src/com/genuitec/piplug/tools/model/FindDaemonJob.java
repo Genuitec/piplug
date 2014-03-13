@@ -8,6 +8,7 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 
+import com.genuitec.piplug.client.PiPlugClient;
 import com.genuitec.piplug.tools.ui.Activator;
 
 public class FindDaemonJob extends Job {
@@ -15,7 +16,7 @@ public class FindDaemonJob extends Job {
     private IDaemonStateListener listener;
 
     public FindDaemonJob(IDaemonStateListener listener) {
-	super("Finding PiPlug Daemon...");
+	super("Discovering PiPlug Daemon");
 	this.listener = listener;
 	setUser(false);
 	setSystem(false);
@@ -23,7 +24,11 @@ public class FindDaemonJob extends Job {
 
     @Override
     protected IStatus run(IProgressMonitor monitor) {
-	monitor.beginTask("Finding PiPlug Daemon...", IProgressMonitor.UNKNOWN);
+	monitor.beginTask("Discovering PiPlug Daemon",
+		PiPlugClient.CONNECT_TIMEOUT);
+	IntervalProgressJob intervalProgressJob = new IntervalProgressJob(
+		monitor, PiPlugClient.CONNECT_TIMEOUT + 5000);
+	intervalProgressJob.schedule();
 	try {
 	    PiPlugCore core = PiPlugCore.getInstance();
 
@@ -62,6 +67,8 @@ public class FindDaemonJob extends Job {
 	    if (serverAddress == null) {
 		try {
 		    core.startDaemonLocally();
+		    // give the daemon some time to start up
+		    Thread.sleep(5000);
 		    InetSocketAddress localAddress = new InetSocketAddress(
 			    "127.0.0.1", 4392);
 		    core.getClient().connectTo(localAddress);
@@ -107,6 +114,7 @@ public class FindDaemonJob extends Job {
 	    }
 	    return Status.OK_STATUS;
 	} finally {
+	    intervalProgressJob.cancel();
 	    monitor.done();
 	}
     }

@@ -11,7 +11,6 @@ import java.io.OutputStream;
 import java.io.Reader;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashSet;
 import java.util.List;
@@ -29,6 +28,10 @@ import org.eclipse.core.runtime.jobs.Job;
 import com.genuitec.piplug.client.internal.DiscoverDaemonService;
 
 public class PiPlugClient {
+
+    private static final int SECONDS = 1000;
+    public static final int CONNECT_TIMEOUT = 30 * SECONDS;
+    public static final int READ_TIMEOUT = 30 * SECONDS;
 
     private class ClientListeningJob extends Job {
 
@@ -64,9 +67,7 @@ public class PiPlugClient {
 	protected void listenForEvents() throws CoreException {
 	    checkConnected();
 	    try {
-		URL url = urlTo("/wait-for-changes");
-		connection = (HttpURLConnection) url.openConnection();
-		connection.setReadTimeout(5 * 60 * 1000);
+		connection = openHttpConnectionTo("/wait-for-changes");
 		connection.addRequestProperty("client-sync-time", Long
 			.toString(bundleDescriptors == null ? 0
 				: bundleDescriptors.getSyncTime()));
@@ -136,8 +137,10 @@ public class PiPlugClient {
 
     public void connectTo(InetSocketAddress address) throws CoreException {
 	try {
-	    Reader raw = new InputStreamReader(urlTo(address, "/connect")
-		    .openStream(), "UTF-8");
+	    HttpURLConnection connection = openHttpConnectionTo(address,
+		    "/connect");
+	    Reader raw = new InputStreamReader(connection.getInputStream(),
+		    "UTF-8");
 	    try {
 		String response = new BufferedReader(raw).readLine();
 		if ("connection-alive".equals(response)) {
@@ -180,8 +183,9 @@ public class PiPlugClient {
     private List<BundleDescriptor> initializeBundles() throws CoreException {
 	checkConnected();
 	try {
-	    Reader raw = new InputStreamReader(urlTo("/list-bundles")
-		    .openStream(), "UTF-8");
+	    HttpURLConnection connection = openHttpConnectionTo("/list-bundles");
+	    Reader raw = new InputStreamReader(connection.getInputStream(),
+		    "UTF-8");
 	    try {
 		Unmarshaller unmarshaller = jaxb.createUnmarshaller();
 		Object result = unmarshaller.unmarshal(new BufferedReader(raw));
@@ -202,8 +206,7 @@ public class PiPlugClient {
 	    throws CoreException {
 	checkConnected();
 	try {
-	    URL url = urlTo("/get-bundle");
-	    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+	    HttpURLConnection conn = openHttpConnectionTo("/get-bundle");
 	    conn.setRequestProperty("Bundle-ID", descriptor.getBundleID());
 	    conn.setRequestProperty("Bundle-Version", descriptor.getVersion()
 		    .toString());
@@ -249,9 +252,7 @@ public class PiPlugClient {
 	try {
 	    InputStream in = new FileInputStream(sourceFile);
 	    try {
-		URL url = urlTo("/put-bundle");
-		HttpURLConnection conn = (HttpURLConnection) url
-			.openConnection();
+		HttpURLConnection conn = openHttpConnectionTo("/put-bundle");
 		conn.setRequestProperty("Bundle-ID", descriptor.getBundleID());
 		conn.setRequestProperty("Bundle-Version", descriptor
 			.getVersion().toString());
@@ -289,8 +290,7 @@ public class PiPlugClient {
     public void removeBundle(BundleDescriptor descriptor) throws CoreException {
 	checkConnected();
 	try {
-	    URL url = urlTo("/remove-bundle");
-	    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+	    HttpURLConnection conn = openHttpConnectionTo("/remove-bundle");
 	    conn.setRequestProperty("Bundle-ID", descriptor.getBundleID());
 	    conn.setRequestProperty("Bundle-Version", descriptor.getVersion()
 		    .toString());
@@ -328,22 +328,34 @@ public class PiPlugClient {
 	}
     }
 
-    private URL urlTo(InetSocketAddress address, String path)
-	    throws MalformedURLException {
-	return new URL("http", address.getHostName(), address.getPort(), path);
+    private HttpURLConnection openHttpConnectionTo(InetSocketAddress address,
+	    String path) throws IOException {
+	URL url = new URL("http", address.getHostName(), address.getPort(),
+		path);
+	return openInitializedConnection(url);
     }
 
-    private URL urlTo(String path) throws MalformedURLException, CoreException {
+    private HttpURLConnection openInitializedConnection(URL url)
+	    throws IOException {
+	HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+	connection.setReadTimeout(READ_TIMEOUT);
+	connection.setConnectTimeout(CONNECT_TIMEOUT);
+	return connection;
+    }
+
+    private HttpURLConnection openHttpConnectionTo(String path)
+	    throws CoreException, IOException {
 	checkConnected();
-	return new URL("http", connectedTo.getHostName(),
+	URL url = new URL("http", connectedTo.getHostName(),
 		connectedTo.getPort(), path);
+	return openInitializedConnection(url);
     }
 
     public void notifyClients() throws CoreException {
 	checkConnected();
 	try {
-	    InputStream in = urlTo("/notify-clients").openStream();
-	    in.close();
+	    HttpURLConnection conn = openHttpConnectionTo("/notify-clients");
+	    conn.getInputStream().close();
 	} catch (Exception ioe) {
 	    IStatus status = new Status(IStatus.ERROR, ID,
 		    "Unable to send client notification request", ioe);
