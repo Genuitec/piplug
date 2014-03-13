@@ -55,7 +55,7 @@ public class PiPlugCore implements IPiPlugClientListener {
 		}
 
 	}
-	
+
 	public class PiPlugResourcesListener implements IResourceChangeListener {
 
 		@Override
@@ -72,12 +72,14 @@ public class PiPlugCore implements IPiPlugClientListener {
 							refreshModel();
 							return;
 						}
-						IResourceDelta pluginDelta = childDelta.findMember(new Path("plugin.xml"));
+						IResourceDelta pluginDelta = childDelta
+								.findMember(new Path("plugin.xml"));
 						if (pluginDelta != null) {
 							refreshModel();
 							return;
 						}
-						IResourceDelta manifestDelta = childDelta.findMember(new Path("META-INF/MANIFEST.MF"));
+						IResourceDelta manifestDelta = childDelta
+								.findMember(new Path("META-INF/MANIFEST.MF"));
 						if (manifestDelta != null) {
 							refreshModel();
 							return;
@@ -123,8 +125,8 @@ public class PiPlugCore implements IPiPlugClientListener {
 		listeners.remove(listener);
 	}
 
-
-	private PiPlugBundle createPiPlugBundle(IPluginModelBase plugin, BundleDescriptor bundleDescriptor) {
+	private PiPlugBundle createPiPlugBundle(IPluginModelBase plugin,
+			BundleDescriptor bundleDescriptor) {
 		IExtensions pluginExtensions = plugin.getExtensions();
 		if (null == pluginExtensions)
 			return null;
@@ -159,8 +161,9 @@ public class PiPlugCore implements IPiPlugClientListener {
 	private void fireBundleDescriptorsChanged() {
 		if (listeners.isEmpty())
 			return;
+		BundleDescriptors descriptors = getLocalBundleDescriptors();
 		for (IPiPlugBundleListener listener : listeners) {
-			listener.bundlesChanged(localBundleDescriptors,
+			listener.bundlesChanged(descriptors,
 					remoteBundleDescriptors);
 		}
 	}
@@ -242,7 +245,8 @@ public class PiPlugCore implements IPiPlugClientListener {
 							true);
 			if (null != plugins) {
 				for (IPluginModelBase pluginModel : plugins) {
-					IResource underlyingResource = pluginModel.getUnderlyingResource();
+					IResource underlyingResource = pluginModel
+							.getUnderlyingResource();
 					if (null == underlyingResource)
 						continue;
 					IProject project = underlyingResource.getProject();
@@ -254,7 +258,8 @@ public class PiPlugCore implements IPiPlugClientListener {
 		}
 
 		for (IPluginModelBase plugin : pluginModels) {
-			BundleDescriptor descriptor = PiPlugCore.fromPluginModelBase(plugin);
+			BundleDescriptor descriptor = PiPlugCore
+					.fromPluginModelBase(plugin);
 			PiPlugBundle bundle = createPiPlugBundle(plugin, descriptor);
 			if (null == bundle)
 				continue;
@@ -262,14 +267,28 @@ public class PiPlugCore implements IPiPlugClientListener {
 			descriptor.putData(KEY_BUNDLE, bundle);
 			newBundleDescriptors.getDescriptors().add(descriptor);
 		}
-		
-		if (localBundleDescriptors == null || !localBundleDescriptors.equals(newBundleDescriptors)) {
-			localBundleDescriptors = newBundleDescriptors;
+
+		if (localBundleDescriptors == null
+				|| !localBundleDescriptors.equals(newBundleDescriptors)) {
+			this.localBundleDescriptors = newBundleDescriptors;
 			fireBundleDescriptorsChanged();
 		}
 	}
 
 	public BundleDescriptors getLocalBundleDescriptors() {
+		if (null == localBundleDescriptors) {
+			try {
+				localBundleDescriptors = client.getBundlesFromCache();
+			} catch (CoreException e) {
+				Activator
+						.getDefault()
+						.getLog()
+						.log(new Status(IStatus.ERROR, Activator.PLUGIN_ID,
+								"Could not get cached bundle descriptors", e));
+				localBundleDescriptors = new BundleDescriptors();
+				return localBundleDescriptors;
+			}
+		}
 		synchronized (localBundleDescriptors) {
 			return (BundleDescriptors) localBundleDescriptors.clone();
 		}
@@ -445,7 +464,8 @@ public class PiPlugCore implements IPiPlugClientListener {
 			client = null;
 		}
 		if (null != resourcesListener) {
-			ResourcesPlugin.getWorkspace().removeResourceChangeListener(resourcesListener);
+			ResourcesPlugin.getWorkspace().removeResourceChangeListener(
+					resourcesListener);
 			resourcesListener = null;
 		}
 	}

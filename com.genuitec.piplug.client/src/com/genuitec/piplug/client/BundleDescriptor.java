@@ -116,12 +116,14 @@ public class BundleDescriptor {
     }
 
     public Object getData(String key) {
+	if (null == data)
+	    return null;
 	return data.get(key);
     }
 
-    public void putData(String key, Object data) {
-	if (this.data == null)
+    public void putData(String key, Object value) {
+	if (null == data)
 	    this.data = new HashMap<String, Object>();
-	this.data.put(key, data);
+	this.data.put(key, value);
     }
 }

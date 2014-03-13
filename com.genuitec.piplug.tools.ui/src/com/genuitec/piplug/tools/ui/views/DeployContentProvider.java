@@ -62,6 +62,8 @@ public class DeployContentProvider implements IStructuredContentProvider,
 		SortedSet<PiPlugExtension> extensions = new TreeSet<PiPlugExtension>();
 		for (BundleDescriptor next : descriptors) {
 			PiPlugBundle bundle = PiPlugCore.getInstance().getBundle(next);
+			if (null == bundle)
+				continue;
 			SortedSet<PiPlugExtension> bundleExtensions = bundle.getExtensions();
 			if (null != extensions)
 				extensions.addAll(bundleExtensions);

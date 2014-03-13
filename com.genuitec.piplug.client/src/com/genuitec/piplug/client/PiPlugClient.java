@@ -79,7 +79,7 @@ public class PiPlugClient {
 		    bundleDescriptors = (BundleDescriptors) result;
 		    System.out.println("Received new bundles: "
 			    + bundleDescriptors.getSyncTime());
-		    fireNewBundleListEvents();
+		    fireNewBundleDescriptors();
 		} finally {
 		    connection = null;
 		    raw.close();
@@ -119,7 +119,7 @@ public class PiPlugClient {
 	}
     }
 
-    private void fireNewBundleListEvents() {
+    private void fireNewBundleDescriptors() {
 	if (null == bundleDescriptors)
 	    return;
 	if (listeners.isEmpty())
@@ -186,6 +186,7 @@ public class PiPlugClient {
 		Unmarshaller unmarshaller = jaxb.createUnmarshaller();
 		Object result = unmarshaller.unmarshal(new BufferedReader(raw));
 		bundleDescriptors = (BundleDescriptors) result;
+		fireNewBundleDescriptors();
 		return bundleDescriptors.getDescriptors();
 	    } finally {
 		raw.close();
