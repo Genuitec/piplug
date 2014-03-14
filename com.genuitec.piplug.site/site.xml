@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <site>
-   <feature url="features/com.genuitec.piplug.feature_1.0.1.qualifier.jar" id="com.genuitec.piplug.feature" version="1.0.1.qualifier">
+   <feature url="features/com.genuitec.piplug.feature_1.0.2.qualifier.jar" id="com.genuitec.piplug.feature" version="1.0.2.qualifier">
       <category name="piplugtools"/>
    </feature>
    <category-def name="piplugtools" label="PiPlug Tools"/>
