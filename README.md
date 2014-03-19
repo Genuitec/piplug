@@ -54,7 +54,7 @@ Next, you will install PiPlug on your actual Raspberry Pi.
         
 4. Download the latest PiPlug front-end from GitHub:
 
-        wget http://genuitec.github.io/piplug/dist/piplug-frontend.tgz
+        wget https://github.com/Genuitec/piplug/releases/download/v1.0.2/piplug-frontend-1.0.2.tgz
         tar -xvzf piplug-frontend.tgz
         
 5. Run the PiPlug front-end!
