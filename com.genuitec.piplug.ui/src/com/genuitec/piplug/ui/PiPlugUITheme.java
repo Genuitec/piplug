@@ -5,6 +5,7 @@ import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 
@@ -12,9 +13,11 @@ import com.genuitec.piplug.api.IPiPlugUITheme;
 
 public class PiPlugUITheme implements IPiPlugUITheme {
 
-    private Color backgroundColor;
-    private Font titleFont, subtitleFont;
-    private Color titleColor, subtitleColor;
+    protected Color backgroundColor;
+    protected Font titleFont, subtitleFont;
+    protected Color titleColor, subtitleColor;
+    protected Point screenSize;
+    protected Point appIconSize;
 
     public PiPlugUITheme(Shell shell) {
 	backgroundColor = new Color(Display.getDefault(), 0, 0, 0);
@@ -25,6 +28,40 @@ public class PiPlugUITheme implements IPiPlugUITheme {
 	subtitleFont = new Font(Display.getDefault(), fontBase.getName(),
 		fontBase.getHeight() + 5, SWT.NONE);
 	subtitleColor = new Color(Display.getDefault(), 160, 160, 160);
+	screenSize = shell.getSize();
+	appIconSize = new Point(256, 166);
+    }
+
+    @Override
+    public Point getAppIconSize() {
+	return appIconSize;
+    }
+
+    @Override
+    public Color getBackgroundColor() {
+	return backgroundColor;
+    }
+
+    @Override
+    public Image getHeaderLogoImage() {
+	return PiPlugUIActivator.loadImage("images/PiPlug-wText-50h.png");
+    }
+
+    @Override
+    public int getMargin() {
+	return 48;
+    }
+
+    @Override
+    public int getMaximumColumns() {
+	int shellWidth = screenSize.x;
+	int iconWidth = appIconSize.x;
+	return shellWidth / iconWidth;
+    }
+
+    @Override
+    public Image getQuitIconImage() {
+	return PiPlugUIActivator.loadImage("images/icon-quit48.png");
     }
 
     @Override
@@ -39,18 +76,8 @@ public class PiPlugUITheme implements IPiPlugUITheme {
     }
 
     @Override
-    public Image getHeaderLogoImage() {
-	return PiPlugUIActivator.loadImage("images/PiPlug-wText-50h.png");
-    }
-
-    @Override
-    public Color getBackgroundColor() {
-	return backgroundColor;
-    }
-
-    @Override
-    public Color getTitleColor() {
-	return titleColor;
+    public int getSpacing() {
+	return 40;
     }
 
     @Override
@@ -59,12 +86,18 @@ public class PiPlugUITheme implements IPiPlugUITheme {
     }
 
     @Override
+    public Font getSubtitleFont() {
+	return subtitleFont;
+    }
+
+    @Override
+    public Color getTitleColor() {
+	return titleColor;
+    }
+
+    @Override
     public Font getTitleFont() {
 	return titleFont;
     }
 
-    @Override
-    public Font getSubtitleFont() {
-	return subtitleFont;
-    }
 }
