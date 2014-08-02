@@ -11,6 +11,8 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.MouseListener;
+import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.graphics.ImageData;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
@@ -88,9 +90,11 @@ public class PiPlugDashboardComposite extends Composite {
 	this.container = container;
 
 	IPiPlugUITheme theme = container.getTheme();
+
+	// Create the logo section
 	GridLayout layout = new GridLayout(1, false);
-	layout.marginWidth = 48;
-	layout.marginHeight = 48;
+	layout.marginWidth = theme.getMargin();
+	layout.marginHeight = theme.getMargin();
 	setLayout(layout);
 	setBackground(theme.getBackgroundColor());
 	Label label = new Label(this, SWT.CENTER);
@@ -98,12 +102,13 @@ public class PiPlugDashboardComposite extends Composite {
 	label.setLayoutData(new GridData(SWT.CENTER, SWT.TOP, true, false));
 	label.setBackground(theme.getBackgroundColor());
 
+	// Create the buttons section
 	buttonsArea = new Composite(this, SWT.NONE);
 	buttonsArea.setBackground(theme.getBackgroundColor());
 	buttonsAreaLayout = new GridLayout(1, false);
 	buttonsAreaLayout.marginWidth = buttonsAreaLayout.marginHeight = 0;
-	buttonsAreaLayout.horizontalSpacing = 40;
-	buttonsAreaLayout.verticalSpacing = 40;
+	buttonsAreaLayout.horizontalSpacing = theme.getSpacing();
+	buttonsAreaLayout.verticalSpacing = theme.getSpacing();
 	buttonsArea.setLayout(buttonsAreaLayout);
 	buttonsAreaGD = new GridData(SWT.CENTER, SWT.CENTER, true, true);
 	buttonsArea.setLayoutData(buttonsAreaGD);
@@ -115,37 +120,28 @@ public class PiPlugDashboardComposite extends Composite {
 		    next.getKey());
 	sortApps();
 
+	// Create the buttons section
 	Label quit = new Label(this, SWT.NONE);
 	GridData gd = new GridData(SWT.RIGHT, SWT.BOTTOM, true, false);
-	gd.widthHint = 48;
-	gd.heightHint = 48;
+	gd.widthHint = theme.getMargin();
+	gd.heightHint = theme.getMargin();
 	quit.setLayoutData(gd);
-	quit.setImage(PiPlugUIActivator.loadImage("images/icon-quit48.png"));
+	quit.setImage(theme.getQuitIconImage());
 	quit.addMouseListener(new CloseShellListener());
 	quit.setBackground(theme.getBackgroundColor());
     }
 
     private boolean updateButtonsLayout(
 	    Map<BundleDescriptor, IPiPlugApplication> applications) {
-	int maxColumns = getMaximumColumns();
+	IPiPlugUITheme theme = container.getTheme();
+	int maxColumns = theme.getMaximumColumns();
 	int newColumns = Math.min(maxColumns, applications.size());
 	if (newColumns == buttonsAreaLayout.numColumns)
 	    return false;
 	buttonsAreaLayout.numColumns = newColumns;
-	buttonsAreaGD.widthHint = (newColumns * 256) + ((newColumns - 1) * 40);
+	buttonsAreaGD.widthHint = (newColumns * theme.getAppIconSize().x)
+		+ ((newColumns - 1) * theme.getSpacing());
 	return true;
-    }
-
-    private int getMaximumColumns() {
-	int maxColumns;
-	int shellWidth = getShell().getBounds().width;
-	if (shellWidth > 1800)
-	    maxColumns = 5;
-	else if (shellWidth > 1200)
-	    maxColumns = 4;
-	else
-	    maxColumns = 3;
-	return maxColumns;
     }
 
     private void sortApps() {
@@ -221,6 +217,7 @@ public class PiPlugDashboardComposite extends Composite {
 	private Composite child;
 	private BundleDescriptor descriptor;
 	private Label button;
+	private Image icon;
 
 	public PiPlugAppHandle(Composite parent, IPiPlugApplication app,
 		IPiPlugUITheme theme, BundleDescriptor descriptor) {
@@ -238,32 +235,37 @@ public class PiPlugDashboardComposite extends Composite {
 	private void createControls(IPiPlugUITheme theme) {
 	    GridLayout layout = new GridLayout(1, false);
 	    layout.marginWidth = layout.marginHeight = 0;
-	    layout.verticalSpacing = 10;
+	    layout.verticalSpacing = theme.getSpacing();
 	    setLayout(layout);
 	    button = new Label(this, SWT.PUSH);
 	    button.setBackground(theme.getBackgroundColor());
 	    GridData gd = new GridData(SWT.FILL, SWT.FILL, true, true);
-	    gd.heightHint = 256;
-	    gd.widthHint = 166;
+	    gd.heightHint = theme.getAppIconSize().x;
+	    gd.widthHint = theme.getAppIconSize().y;
 	    button.setLayoutData(gd);
 	    button.addMouseListener(this);
 	    label = new Label(this, SWT.CENTER);
 	    label.setFont(theme.getTitleFont());
 	    label.setForeground(theme.getTitleColor());
-	    label.setLayoutData(new GridData(SWT.FILL, SWT.BOTTOM, true, false));
+	    label.setLayoutData(new GridData(SWT.FILL, SWT.BEGINNING, true,
+		    false));
 	    label.addMouseListener(this);
 	    label.setBackground(theme.getBackgroundColor());
 	    addMouseListener(this);
 	    gd = new GridData(SWT.FILL, SWT.FILL);
-	    gd.widthHint = 256;
-	    gd.heightHint = 206;
+	    gd.widthHint = theme.getAppIconSize().x;
+	    gd.heightHint = theme.getAppIconSize().y + 30;
 	    setLayoutData(gd);
 	    this.setBackground(theme.getBackgroundColor());
+	    ImageData original = app.getBranding().getImage().getImageData();
+	    ImageData scaled = original.scaledTo(theme.getAppIconSize().x,
+		    theme.getAppIconSize().y);
+	    icon = new Image(container.getDisplay(), scaled);
 	    updateAppBranding();
 	}
 
 	private void updateAppBranding() {
-	    button.setImage(app.getBranding().getImage());
+	    button.setImage(icon);
 	    label.setText(app.getBranding().getName());
 	}
 

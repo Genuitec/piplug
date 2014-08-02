@@ -18,10 +18,28 @@ public class PiPlugApplication implements IApplication {
 	Display display = new Display();
 	Rectangle bounds = display.getBounds();
 	final Shell shell = new Shell(display, SWT.NO_TRIM);
+	int width = bounds.width;
+	int height = bounds.height;
+	String[] arguments = (String[]) context.getArguments().get(
+		"application.args");
+	for (int i = 0; i < arguments.length; i++) {
+	    String string = arguments[i];
+	    if (string.equals("-width")) {
+		width = Integer.valueOf(arguments[i + 1]);
+	    }
+	    if (string.equals("-height")) {
+		height = Integer.valueOf(arguments[i + 1]);
+	    }
+	}
+	shell.setBounds(0, 0, width, height);
 	shell.setText("PiPlug: Plug in Apps to your Pi");
-	IPiPlugUITheme theme = new PiPlugUITheme(shell);
+	IPiPlugUITheme theme = null;
+	if (shell.getSize().x == 320) {
+	    theme = new QVGAPiPlugUITheme(shell);
+	} else {
+	    theme = new PiPlugUITheme(shell);
+	}
 	PiPlugServices services = new PiPlugServices(theme);
-	shell.setBounds(0, 0, bounds.width, bounds.height);
 	GridLayout layout = new GridLayout(1, false);
 	layout.marginWidth = layout.marginHeight = 0;
 	shell.setLayout(layout);
